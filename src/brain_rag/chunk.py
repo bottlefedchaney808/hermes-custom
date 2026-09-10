@@ -126,3 +126,61 @@ def chunk_note(rel_path: str, text: str, mtime: float) -> list[Chunk]:
                 )
             )
     return chunks
+
+
+_TOOL_JSON_FENCE_RE = re.compile(r"```json\s*\n.*?\n```", re.DOTALL)
+
+
+def strip_tool_json(text: str) -> str:
+    """Drop fenced ```json blocks (tool payloads); keep other code fences.
+
+    Session notes are for reasoning, not machine payloads (spec section 6).
+    """
+    return _TOOL_JSON_FENCE_RE.sub("", text or "").strip()
+
+
+def chunk_session(
+    rel_path: str,
+    turns: list[dict],
+    *,
+    leg: str,
+    session_id: str,
+    started: str,
+) -> list[Chunk]:
+    """One chunk per user turn plus the assistant reply that follows it."""
+    chunks: list[Chunk] = []
+    pending_user: str | None = None
+
+    def _emit(user_text: str, assistant_text: str | None) -> None:
+        parts = [f"**User:** {user_text}"]
+        if assistant_text:
+            parts.append(f"**Assistant:** {assistant_text}")
+        piece = "\n\n".join(parts)
+        chunks.append(
+            Chunk(
+                text=piece,
+                path=rel_path.replace("\\", "/"),
+                heading=None,
+                leg=leg,
+                source="session",
+                date=started,
+                session_id=session_id,
+                wikilinks=_wikilinks(piece),
+                content_hash=_hash(session_id, str(len(chunks)), piece),
+            )
+        )
+
+    for turn in turns:
+        role = turn.get("role")
+        content = strip_tool_json(turn.get("content") or "")
+        if role == "user":
+            if pending_user is not None:
+                _emit(pending_user, None)
+            pending_user = content
+        elif role == "assistant" and pending_user is not None:
+            _emit(pending_user, content)
+            pending_user = None
+
+    if pending_user is not None:
+        _emit(pending_user, None)
+    return chunks
