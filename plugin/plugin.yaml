@@ -1,0 +1,4 @@
+name: brain-rag
+version: "0.1.0"
+description: "Hybrid BM25 + vector retrieval over the obsidian-brain vault and swept Hermes sessions. Cited snippets only."
+author: bottlefedchaney808
