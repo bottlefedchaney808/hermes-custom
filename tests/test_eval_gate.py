@@ -29,13 +29,17 @@ def _offline(monkeypatch):
 def test_gate_no_cross_leg_leak_in_either_direction(store):
     """'straddle' exists in BOTH Trading and Construction fixtures."""
     for leg in ("Trading", "Construction"):
-        for hit in search(store, "straddle", leg=leg)["hits"]:
+        hits = search(store, "straddle", leg=leg)["hits"]
+        assert hits, f"expected non-empty hits for straddle in {leg}"
+        for hit in hits:
             assert hit["leg"] == leg
 
 
 def test_gate_every_hit_is_citable(store):
     for query in ("straddle", "mill", "profile"):
-        for hit in search(store, query)["hits"]:
+        hits = search(store, query)["hits"]
+        assert hits, f"expected non-empty hits for {query!r}"
+        for hit in hits:
             assert hit["path"]
             assert hit["heading"] or hit["session_id"]
             assert hit["date"]
