@@ -23,6 +23,16 @@ def _run_git(args: list[str], cwd: Path) -> None:
     subprocess.run(["git", *args], cwd=str(cwd), check=True, capture_output=True)
 
 
+def _committed_in_git(vault: Path, rel: str) -> bool:
+    """True when HEAD already contains this vault-relative path."""
+    proc = subprocess.run(
+        ["git", "cat-file", "-e", f"HEAD:{rel}"],
+        cwd=str(vault),
+        capture_output=True,
+    )
+    return proc.returncode == 0
+
+
 def session_note_path(leg: str, started: str, session_id: str) -> str:
     """``{Leg}/Sessions/YYYY-MM-DD-<short-id>.md`` (spec section 6)."""
     short = session_id.split("_")[-1]
@@ -122,20 +132,22 @@ def sweep_sessions(
             rel = session_note_path(leg, started, row["id"])
             target = vault / rel
             if target.exists():
-                continue
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(
-                render_session_note(
-                    session_id=row["id"],
-                    leg=leg,
-                    profile=row["profile_name"] or "default",
-                    started=started,
-                    source=row["source"] or "unknown",
-                    title=row["title"],
-                    turns=turns,
-                ),
-                encoding="utf-8",
-            )
+                if _committed_in_git(vault, rel):
+                    continue
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(
+                    render_session_note(
+                        session_id=row["id"],
+                        leg=leg,
+                        profile=row["profile_name"] or "default",
+                        started=started,
+                        source=row["source"] or "unknown",
+                        title=row["title"],
+                        turns=turns,
+                    ),
+                    encoding="utf-8",
+                )
             result["files_written"].append(rel)
             result["sessions_swept"] += 1
     finally:

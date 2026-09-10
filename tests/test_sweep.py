@@ -1,5 +1,6 @@
 import sqlite3
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -113,3 +114,30 @@ def test_push_failure_leaves_commit_local_and_reports(tmp_path, vault):
     assert result["pushed"] is False
     assert result["error"]
     assert result["sessions_swept"] == 1
+
+
+def test_existing_untracked_session_note_is_git_added_on_later_sweep(tmp_path, vault):
+    db = tmp_path / "state.db"
+    sid = _make_state_db(db, age_days=30, cwd="C:/Users/bottl/hermes-custom")
+    conn = sqlite3.connect(db)
+    started_at = conn.execute(
+        "SELECT started_at FROM sessions WHERE id = ?", (sid,)
+    ).fetchone()[0]
+    conn.close()
+    started = datetime.fromtimestamp(started_at, tz=timezone.utc).date().isoformat()
+    rel = session_note_path("Development", started, sid)
+    target = vault / rel
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text("STRANDED\n", encoding="utf-8")
+
+    adds: list[list[str]] = []
+
+    def runner(args, cwd):
+        adds.append(list(args))
+
+    result = sweep_sessions(db, vault, runner=runner)
+    assert rel in result["files_written"]
+    add_calls = [a for a in adds if a and a[0] == "add"]
+    assert add_calls
+    assert rel in add_calls[0]
+    assert target.read_text(encoding="utf-8") == "STRANDED\n"
