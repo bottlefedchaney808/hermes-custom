@@ -77,11 +77,24 @@ RAG_INDEX_SCHEMA = {
 }
 
 
+def _clamp_k(raw) -> int:
+    try:
+        k = int(8 if raw is None else raw)
+    except (TypeError, ValueError):
+        return 8
+    if k < 1:
+        return 8
+    return min(k, 50)
+
+
 def _handle_rag_search(args, **_kwargs) -> str:
     helpers = _engine_helpers()
     query = (args or {}).get("query") or ""
     if not query.strip():
         return json.dumps({"error": "Empty query."})
+    vault = helpers.vault_path()
+    if not vault.is_dir():
+        return json.dumps({"error": f"Vault clone not found: {vault}"})
     try:
         engine = helpers.load()
         store = engine["store"].Store.open(helpers.index_path())
@@ -93,7 +106,8 @@ def _handle_rag_search(args, **_kwargs) -> str:
                 after=args.get("after"),
                 before=args.get("before"),
                 source=args.get("source", "all"),
-                k=int(args.get("k", 8)),
+                k=_clamp_k(args.get("k", 8)),
+                vault_dir=vault,
             )
         finally:
             store.close()

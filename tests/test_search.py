@@ -59,6 +59,25 @@ def test_k_caps_the_hit_count(store, monkeypatch):
     assert len(search(store, "straddle OR mill OR profile", k=1)["hits"]) == 1
 
 
+def test_k_less_than_one_is_not_a_python_tail_slice(store, monkeypatch):
+    monkeypatch.setattr("brain_rag.search.embed_texts", _no_vectors)
+    query = "straddle OR mill OR profile"
+    default = search(store, query, k=8)
+    for bad_k in (0, -1, -8):
+        result = search(store, query, k=bad_k)
+        assert "error" not in result
+        assert len(result["hits"]) in (0, len(default["hits"]))
+        if result["hits"] and default["hits"]:
+            assert result["hits"][0]["path"] == default["hits"][0]["path"]
+
+
+def test_missing_vault_returns_error_not_stale_hits(store, monkeypatch):
+    monkeypatch.setattr("brain_rag.search.embed_texts", _no_vectors)
+    result = search(store, "straddle", vault_dir=Path("C:/nope/not/a/vault"))
+    assert "error" in result
+    assert not result.get("hits")
+
+
 def test_date_filters_bound_results(store, monkeypatch):
     monkeypatch.setattr("brain_rag.search.embed_texts", _no_vectors)
     assert search(store, "straddle", before="1990-01-01")["hits"] == []

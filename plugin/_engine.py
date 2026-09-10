@@ -49,7 +49,13 @@ def index_path() -> Path:
     import os
 
     home = os.environ.get("HERMES_HOME")
-    base = Path(home) if home else Path.home() / ".hermes"
+    if home:
+        base = Path(home)
+    elif os.name == "nt":
+        local = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
+        base = Path(local) / "hermes"
+    else:
+        base = Path.home() / ".hermes"
     return base / "rag" / "brain.sqlite"
 
 

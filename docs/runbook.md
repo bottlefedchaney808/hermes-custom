@@ -13,6 +13,14 @@ Then, per profile that should have RAG:
 
 Verify: `GET /api/plugins/brain-rag/status` returns `{"ok": true, ...}`.
 
+## Paths
+
+Index file: `$HERMES_HOME/rag/brain.sqlite` (per profile, never in git).
+
+On Windows, if `HERMES_HOME` is unset, the default is `%LOCALAPPDATA%/hermes`
+— not `~/.hermes`. Named profiles live under
+`%LOCALAPPDATA%/hermes/profiles/<name>/`.
+
 ## Weekly cron (profile `default`, after the eval gate is green)
 
     hermes cron add "weekly sweep and reindex the brain" \

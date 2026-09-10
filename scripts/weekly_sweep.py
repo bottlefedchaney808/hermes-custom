@@ -18,7 +18,13 @@ from brain_rag.index import index_vault  # noqa: E402
 
 
 def _hermes_home() -> Path:
-    return Path(os.environ.get("HERMES_HOME") or Path.home() / ".hermes")
+    home = os.environ.get("HERMES_HOME")
+    if home:
+        return Path(home)
+    if os.name == "nt":
+        local = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
+        return Path(local) / "hermes"
+    return Path.home() / ".hermes"
 
 
 def _vault() -> Path:

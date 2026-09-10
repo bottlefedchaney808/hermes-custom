@@ -57,16 +57,25 @@ class IndexRequest(BaseModel):
 @router.post("/search")
 async def search_endpoint(body: SearchRequest):
     helpers = _engine_helpers()
+    vault = helpers.vault_path()
+    if not vault.is_dir():
+        raise HTTPException(status_code=503, detail=f"Vault clone not found: {vault}")
     try:
         engine = helpers.load()
         store = engine["store"].Store.open(helpers.index_path())
         try:
-            return engine["search"].search(
+            result = engine["search"].search(
                 store, body.query, leg=body.leg, after=body.after,
                 before=body.before, source=body.source, k=body.k,
+                vault_dir=vault,
             )
         finally:
             store.close()
+        if "error" in result:
+            raise HTTPException(status_code=503, detail=result["error"])
+        return result
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(status_code=503, detail="brain-rag index unavailable")
 

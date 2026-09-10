@@ -9,7 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from brain_rag.chunk import chunk_note, should_skip
+from brain_rag.chunk import chunks_for_markdown, should_skip
 from brain_rag.embed import embed_texts
 from brain_rag.store import Store
 
@@ -52,7 +52,7 @@ def index_vault(
             files_skipped += 1
             continue
 
-        chunks = chunk_note(rel, text, mtime=path.stat().st_mtime)
+        chunks = chunks_for_markdown(rel, text, mtime=path.stat().st_mtime)
         if mode == "full":
             store.delete_path(rel)
         else:

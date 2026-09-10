@@ -23,3 +23,11 @@ def test_never_calls_prune():
 def test_sweeps_before_reindexing():
     text = SCRIPT.read_text(encoding="utf-8")
     assert text.index("sweep_sessions") < text.index("index_vault")
+
+
+def test_unset_hermes_home_uses_localappdata_not_dot_hermes(monkeypatch, tmp_path):
+    monkeypatch.delenv("HERMES_HOME", raising=False)
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "Local"))
+    home = _load()._hermes_home()
+    assert home == tmp_path / "Local" / "hermes"
+    assert ".hermes" not in home.as_posix()

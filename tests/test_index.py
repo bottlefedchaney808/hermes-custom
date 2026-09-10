@@ -95,3 +95,52 @@ def test_unreadable_note_drops_stale_hashes(store, tmp_path):
 def test_unknown_mode_is_rejected(store):
     with pytest.raises(ValueError):
         index_vault(VAULT, store, mode="delta", embed=False)
+
+
+def test_swept_session_note_indexes_as_session_with_session_id(store, tmp_path, monkeypatch):
+    """Swept {Leg}/Sessions/*.md notes must use chunk_session, not chunk_note."""
+    from brain_rag.embed import EmbeddingsUnavailable
+    from brain_rag.search import search
+    from brain_rag.sweep import render_session_note
+
+    vault = _copy_vault(tmp_path)
+    rel = "Construction/Sessions/2026-09-01-abc123.md"
+    (vault / "Construction" / "Sessions").mkdir(parents=True, exist_ok=True)
+    (vault / rel).write_text(
+        render_session_note(
+            session_id="20260901_120000_abc123",
+            leg="Construction",
+            profile="default",
+            started="2026-09-01",
+            source="desktop",
+            title="Rate question",
+            turns=[
+                {"role": "user", "content": "what is the burdened rate"},
+                {"role": "assistant", "content": "It is $58.40/hr."},
+            ],
+        ),
+        encoding="utf-8",
+    )
+
+    index_vault(vault, store, embed=False)
+    rows = [r for r in store.bm25("burdened", limit=20) if r["path"] == rel]
+    assert rows
+    assert all(r["source"] == "session" for r in rows)
+    assert all(r["session_id"] == "20260901_120000_abc123" for r in rows)
+    assert all(r["date"] == "2026-09-01" for r in rows)
+
+    def _offline(texts, **kwargs):
+        raise EmbeddingsUnavailable("offline in tests")
+
+    monkeypatch.setattr("brain_rag.search.embed_texts", _offline)
+    construction = search(store, "burdened", leg="Construction")
+    assert construction["hits"]
+    assert all(h["leg"] == "Construction" for h in construction["hits"])
+    assert all(not h["path"].startswith("Trading/") for h in construction["hits"])
+    for hit in construction["hits"]:
+        assert hit["path"]
+        assert hit["heading"] or hit["session_id"]
+        assert hit["date"]
+        assert hit["leg"]
+    trading = search(store, "burdened", leg="Trading")
+    assert all(h["leg"] == "Trading" for h in trading.get("hits", []))

@@ -18,7 +18,8 @@ MAX_CHUNK_CHARS = 6000
 
 _HEADING_RE = re.compile(r"^(#{2,6})\s+(.*)$", re.MULTILINE)
 _WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)")
-_FRONTMATTER_RE = re.compile(r"\A---\n.*?\n---\n", re.DOTALL)
+_FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
+_TURN_HEADING_RE = re.compile(r"^(#{2,3})\s+(User|Assistant)\s*$", re.IGNORECASE | re.MULTILINE)
 
 _SKIP_DIRS = (".obsidian/", ".git/")
 _BINARY_SUFFIXES = (
@@ -86,6 +87,69 @@ def _split_oversized(text: str) -> list[str]:
     if buf:
         out.append(buf)
     return out
+
+
+def _frontmatter(text: str) -> dict[str, str]:
+    match = _FRONTMATTER_RE.match(text or "")
+    if not match:
+        return {}
+    fields: dict[str, str] = {}
+    for line in match.group(1).splitlines():
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        fields[key.strip()] = value.strip()
+    return fields
+
+
+def is_session_note(rel_path: str, text: str = "") -> bool:
+    """True for swept session markdown: ``*/Sessions/*.md`` and/or ``type: session``."""
+    posix = str(rel_path).replace("\\", "/")
+    parts = posix.split("/")
+    if "Sessions" in parts:
+        return True
+    return _frontmatter(text).get("type") == "session"
+
+
+def _turns_from_session_body(body: str) -> list[dict]:
+    matches = list(_TURN_HEADING_RE.finditer(body or ""))
+    turns: list[dict] = []
+    for i, match in enumerate(matches):
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(body)
+        turns.append({
+            "role": match.group(2).strip().lower(),
+            "content": body[match.end():end].strip(),
+        })
+    return turns
+
+
+def chunks_for_markdown(rel_path: str, text: str, mtime: float) -> list[Chunk]:
+    """Dispatch vault markdown to ``chunk_session`` or ``chunk_note``."""
+    if is_session_note(rel_path, text):
+        return chunk_session_note(rel_path, text, mtime)
+    return chunk_note(rel_path, text, mtime)
+
+
+def chunk_session_note(rel_path: str, text: str, mtime: float) -> list[Chunk]:
+    """Parse a swept session note and emit turn-pair chunks."""
+    posix = str(rel_path).replace("\\", "/")
+    fields = _frontmatter(text)
+    body = _FRONTMATTER_RE.sub("", text)
+    stem = posix.rsplit("/", 1)[-1]
+    if stem.lower().endswith(".md"):
+        stem = stem[:-3]
+    session_id = fields.get("session_id") or stem
+    started = fields.get("started")
+    if not started:
+        started = stem[:10] if len(stem) >= 10 and stem[4:5] == "-" and stem[7:8] == "-" else _iso_date(mtime)
+    leg = fields.get("leg") or leg_for_vault_path(posix) or DEFAULT_LEG
+    return chunk_session(
+        posix,
+        _turns_from_session_body(body),
+        leg=leg,
+        session_id=session_id,
+        started=started,
+    )
 
 
 def chunk_note(rel_path: str, text: str, mtime: float) -> list[Chunk]:
