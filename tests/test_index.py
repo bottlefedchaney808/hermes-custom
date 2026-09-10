@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 import pytest
@@ -51,3 +52,46 @@ def test_embedding_failure_propagates(store, monkeypatch):
     monkeypatch.setattr("brain_rag.index.embed_texts", boom)
     with pytest.raises(EmbeddingsUnavailable):
         index_vault(VAULT, store, embed=True)
+
+
+def _copy_vault(tmp_path: Path) -> Path:
+    dest = tmp_path / "vault"
+    shutil.copytree(VAULT, dest)
+    return dest
+
+
+def test_deleted_note_is_dropped_on_incremental(store, tmp_path):
+    vault = _copy_vault(tmp_path)
+    index_vault(vault, store, embed=False)
+    rel = "Trading/Positions.md"
+    assert store.known_hashes(rel)
+    (vault / rel).unlink()
+    index_vault(vault, store, embed=False)
+    assert store.known_hashes(rel) == set()
+
+
+def test_emptied_note_drops_old_chunks(store, tmp_path):
+    vault = _copy_vault(tmp_path)
+    index_vault(vault, store, embed=False)
+    rel = "Trading/Positions.md"
+    assert store.known_hashes(rel)
+    (vault / rel).write_text("", encoding="utf-8")
+    index_vault(vault, store, embed=False)
+    assert store.known_hashes(rel) == set()
+
+
+def test_unreadable_note_drops_stale_hashes(store, tmp_path):
+    vault = _copy_vault(tmp_path)
+    index_vault(vault, store, embed=False)
+    rel = "Trading/Positions.md"
+    old = store.known_hashes(rel)
+    assert old
+    (vault / rel).write_bytes(b"\xff\xfe not utf-8")
+    index_vault(vault, store, embed=False)
+    assert store.known_hashes(rel) == set()
+    assert old.isdisjoint(store.known_hashes(rel))
+
+
+def test_unknown_mode_is_rejected(store):
+    with pytest.raises(ValueError):
+        index_vault(VAULT, store, mode="delta", embed=False)

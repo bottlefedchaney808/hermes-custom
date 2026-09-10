@@ -89,6 +89,10 @@ class Store:
         ).fetchall()
         return {r[0] for r in rows}
 
+    def indexed_paths(self) -> set[str]:
+        rows = self._conn.execute("SELECT DISTINCT path FROM chunks").fetchall()
+        return {r[0] for r in rows}
+
     def delete_path(self, path: str) -> int:
         cur = self._conn.execute("SELECT id FROM chunks WHERE path = ?", (path,))
         ids = [r[0] for r in cur.fetchall()]

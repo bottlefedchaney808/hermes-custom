@@ -32,17 +32,24 @@ def index_vault(
     vault = Path(vault_dir)
     if not vault.is_dir():
         raise FileNotFoundError(f"Vault clone not found: {vault}")
+    if mode not in ("incremental", "full"):
+        raise ValueError(f"Unknown index mode: {mode!r}")
 
     files_indexed = 0
     chunks_added = 0
+    files_skipped = 0
+    seen: set[str] = set()
 
     for path in sorted(vault.rglob("*.md")):
         rel = path.relative_to(vault).as_posix()
         if should_skip(rel):
             continue
+        seen.add(rel)
         try:
             text = path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
+            store.delete_path(rel)
+            files_skipped += 1
             continue
 
         chunks = chunk_note(rel, text, mtime=path.stat().st_mtime)
@@ -50,7 +57,12 @@ def index_vault(
             store.delete_path(rel)
         else:
             known = store.known_hashes(rel)
-            if known and all(c.content_hash in known for c in chunks):
+            if (
+                chunks
+                and known
+                and len(chunks) == len(known)
+                and all(c.content_hash in known for c in chunks)
+            ):
                 files_indexed += 1
                 continue
             store.delete_path(rel)
@@ -58,12 +70,16 @@ def index_vault(
         chunks_added += store.upsert_chunks(chunks)
         files_indexed += 1
 
+    for leftover in store.indexed_paths() - seen:
+        store.delete_path(leftover)
+
     embedded = _embed_pending(store) if embed else 0
     return {
         "files_indexed": files_indexed,
         "chunks_added": chunks_added,
         "chunks_embedded": embedded,
         "total_chunks": store.count(),
+        "files_skipped": files_skipped,
         "mode": mode,
     }
 
