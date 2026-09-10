@@ -1,0 +1,28 @@
+[project]
+name = "brain-rag"
+version = "0.1.0"
+description = "Hybrid retrieval over the obsidian-brain vault and swept Hermes sessions"
+requires-python = ">=3.11"
+dependencies = [
+    "sqlite-vec>=0.1.9,<0.2",
+    "httpx>=0.28.1,<1",
+    "fastapi>=0.115,<1",
+    "pydantic>=2.9,<3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3,<9"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "golden: real-vault retrieval eval, local only (deselected by default)",
+]
+addopts = "-m 'not golden'"
