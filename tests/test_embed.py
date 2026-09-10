@@ -52,3 +52,37 @@ def test_empty_input_short_circuits_without_a_call():
         raise AssertionError("network call for empty input")
 
     assert embed_texts([], token_provider=lambda: "t", client=_client(handler)) == []
+
+
+def test_malformed_200_json_raises_embeddings_unavailable():
+    cases = [
+        {},
+        {"data": None},
+        {"data": [{}]},
+        {"data": [{"embedding": None}]},
+    ]
+    for payload in cases:
+        def handler(request, payload=payload):
+            return httpx.Response(200, json=payload)
+
+        with pytest.raises(EmbeddingsUnavailable):
+            embed_texts(["a"], token_provider=lambda: "t", client=_client(handler))
+
+
+def test_wrong_count_or_width_raises_embeddings_unavailable():
+    def too_few(request):
+        return httpx.Response(200, json={"data": [{"embedding": [0.0] * EMBED_DIM}]})
+
+    def too_many(request):
+        vec = [0.0] * EMBED_DIM
+        return httpx.Response(200, json={"data": [{"embedding": vec}, {"embedding": vec}]})
+
+    def wrong_width(request):
+        return httpx.Response(200, json={"data": [{"embedding": [0.0] * (EMBED_DIM - 1)}]})
+
+    with pytest.raises(EmbeddingsUnavailable):
+        embed_texts(["a", "b"], token_provider=lambda: "t", client=_client(too_few))
+    with pytest.raises(EmbeddingsUnavailable):
+        embed_texts(["a"], token_provider=lambda: "t", client=_client(too_many))
+    with pytest.raises(EmbeddingsUnavailable):
+        embed_texts(["a"], token_provider=lambda: "t", client=_client(wrong_width))

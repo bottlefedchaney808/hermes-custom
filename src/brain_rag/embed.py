@@ -91,9 +91,16 @@ def embed_texts(
                 )
                 response.raise_for_status()
                 data = response.json()["data"]
+                embeddings = [item["embedding"] for item in data]
             except Exception as exc:  # noqa: BLE001
                 raise EmbeddingsUnavailable(f"Nous embeddings failed: {exc}") from exc
-            vectors.extend([item["embedding"] for item in data])
+            if len(embeddings) != len(batch) or any(
+                embedding is None or len(embedding) != EMBED_DIM for embedding in embeddings
+            ):
+                raise EmbeddingsUnavailable(
+                    "Nous embeddings returned wrong count or vector width"
+                )
+            vectors.extend(embeddings)
     finally:
         if owns_client:
             http.close()
