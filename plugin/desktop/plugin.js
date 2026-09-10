@@ -36,7 +36,8 @@ function BrainRagPane(props) {
   }
 
   const rows = hits.map(function (hit, i) {
-    const where = hit.heading ? hit.path + ' § ' + hit.heading : hit.path
+    const loc = hit.heading || hit.session_id;
+    const where = loc ? hit.path + ' § ' + loc : hit.path;
     return jsxs('div', {
       className: 'flex flex-col gap-1 border-b border-(--ui-stroke-secondary) py-2',
       children: [

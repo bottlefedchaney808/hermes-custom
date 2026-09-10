@@ -26,6 +26,12 @@ def test_declares_the_brain_rag_id():
     assert "id: 'brain-rag'" in PLUGIN_JS.read_text(encoding="utf-8")
 
 
+def test_citation_falls_back_to_session_id():
+    source = PLUGIN_JS.read_text(encoding="utf-8")
+    assert "session_id" in source
+    assert "hit.heading || hit.session_id" in source
+
+
 def test_no_hardcoded_colors():
     source = PLUGIN_JS.read_text(encoding="utf-8")
     assert not re.search(r"#[0-9a-fA-F]{3,6}\b", source)
