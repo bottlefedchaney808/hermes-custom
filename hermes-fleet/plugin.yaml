@@ -1,0 +1,31 @@
+manifest_version: 2
+api_version: 1
+name: hermes-fleet
+version: "1.0.0"
+description: >-
+  This fleet, as a UI and a tool. Reports what is installed across every Hermes
+  profile, what has drifted from fleet.yaml, and what each profile costs in
+  context — plus an open widget grid in the desktop app.
+author: bottlefedchaney808
+license: MIT
+provides_tools:
+  - fleet_status
+tags:
+  - fleet
+  - plugins
+  - profiles
+  - observability
+config_schema:
+  repo_root:
+    type: str
+    default: ""
+    description: >-
+      Absolute path to the hermes-custom checkout holding fleet.yaml. Leave empty
+      to auto-detect by walking up from this plugin (correct whenever the plugin
+      is symlinked in, which is how fleet installs it).
+  include_plan:
+    type: bool
+    default: true
+    description: >-
+      Whether fleet_status computes the drift plan. Costs a directory walk per
+      surface; turn it off if you only want the inventory.

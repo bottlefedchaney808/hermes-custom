@@ -1,0 +1,37 @@
+# Python bytecode. Plugins are SYMLINKED into the profiles, so Hermes importing
+# them writes __pycache__ straight back into this checkout. Harmless, but it
+# must never show up as a change.
+__pycache__/
+*.py[cod]
+
+.pytest_cache/
+.remember/
+.worktrees/
+
+# fleet writes timestamped config backups next to each profile's config.yaml,
+# never in here — but keep the pattern in case someone copies one over.
+*.fleet-bak-*
+
+# ── Third-party repos cloned here for reference/use. Each keeps its own upstream;
+# re-clone from the table in README.md ("Third-party repos"). Never vendor them.
+/CLI_delegates/hermes-claude-code/
+/Example/
+/Self-Evolution/
+/Takeoff-Lens-Plugin/
+/UI_Skins/
+/delegate-task-advanced/
+/hermes-bot-kit/
+/hermes-dynamic-workflows/
+/hermes-hud/
+/hermes-hudui/
+/hermes-skins/
+/token-optimizer/
+
+# Secrets and local noise
+.env
+.env.*
+*.token
+.vs/
+node_modules/
+*.bak-*
+*.log

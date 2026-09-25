@@ -1,0 +1,15 @@
+{
+  "name": "hermes-fleet-ui",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Desktop half of hermes-fleet — the open widget grid and the fleet matrix.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild ui-src/plugin.tsx --bundle --format=esm --platform=browser --jsx=automatic --external:@hermes/plugin-sdk --external:react --external:react/jsx-runtime --outfile=desktop/plugin.js",
+    "watch": "npm run build -- --watch"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.1"
+  }
+}

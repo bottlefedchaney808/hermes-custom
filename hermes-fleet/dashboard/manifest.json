@@ -1,0 +1,13 @@
+{
+  "name": "hermes-fleet",
+  "label": "Fleet",
+  "description": "Package x profile matrix, live drift against fleet.yaml, and per-profile context budget.",
+  "icon": "LayoutGrid",
+  "version": "1.0.0",
+  "tab": {
+    "path": "/fleet",
+    "position": "after:skills"
+  },
+  "entry": "dist/index.js",
+  "api": "plugin_api.py"
+}

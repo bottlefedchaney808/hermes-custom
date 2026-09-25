@@ -1,0 +1,471 @@
+# fleet.yaml — the single source of truth for what is installed where.
+#
+# WHY THIS FILE EXISTS
+# --------------------
+# Hermes resolves agent plugins, skills and skins from exactly one place:
+# `get_hermes_home()` (hermes_cli/plugins_discovery.py:158). There is no shared
+# path, no search list, no "install once for every profile". Three profiles
+# means three physical trees, forever.
+#
+# Before this file, that was managed by hand, and it had already drifted:
+# `claude-code` was a live symlink on default and a frozen copy on local and
+# tiferet; the 101-skin pack was on two profiles of three; `local` had 40 skills
+# and `tiferet` had 13. Nothing on the machine could tell you any of that.
+#
+# So: declare intent here, and let `fleet/sync.py` make the disk match. Every
+# path below is materialized from THIS repo, so `git log` is the audit trail and
+# a re-clone of Hermes is a one-command recovery.
+#
+# THE ONE EXCEPTION: DESKTOP PLUGINS ARE GLOBAL
+# ---------------------------------------------
+# `apps/desktop/electron/desktop-plugins-root.ts` is explicit about this — the
+# desktop app actively MIGRATES `profiles/<name>/desktop-plugins/*` up into
+# `~/.hermes/desktop-plugins/`, because "profiles are agents; anything
+# discovered through a profile's folder appeared and disappeared with the active
+# profile." A desktop plugin extends the APP, not an agent. So surfaces of kind
+# `desktop-plugin` ignore `profiles:` entirely and install exactly once.
+#
+# UNIFIED PACKAGES
+# ----------------
+# A package folder holding BOTH `plugin.yaml` and `desktop/plugin.js` is a
+# unified package: the agent half installs per profile, and the desktop app
+# copies the desktop half out to `~/.hermes/desktop-plugins/<name>/` on its own,
+# re-copying whenever the source `plugin.js` mtime changes. `hermes-fleet` is
+# built that way — one install, both halves.
+
+version: 1
+
+# ── profiles ────────────────────────────────────────────────────────────────
+# `home` is the HERMES_HOME each profile resolves to. `default` is the bare
+# `~/.hermes`; named profiles live under `profiles/<name>/`.
+profiles:
+  default:
+    home: ~/.hermes
+    role: >-
+      Daily driver. Gets everything, including the experimental lab.
+  jason:
+    home: ~/.hermes/profiles/jason
+    role: >-
+      Personal profile (replaced `local`, 2026-09). Gets the lab. Shares the
+      memory brain with default; tiferet deliberately does not.
+  tiferet:
+    home: ~/.hermes/profiles/tiferet
+    role: >-
+      Construction only, and company-facing. Stays deliberately narrow: takeoff
+      and core tooling, nothing from the lab. Every skill added here is context
+      paid for on every single turn of a bot customers talk to.
+
+# ── defaults ────────────────────────────────────────────────────────────────
+defaults:
+  # `link` = directory symlink back into this repo. One edit reaches all three
+  # profiles and git is the audit trail. Requires Developer Mode or elevation on
+  # Windows; both are already true on this machine (default/claude-code proves
+  # it). Use `copy` for any package that writes inside its own folder — a
+  # symlinked package writing to itself would dirty this repo's working tree.
+  mode: link
+  #
+  # EXCEPTION — skills: every `kind: skill` surface sets `mode: copy`. Hermes'
+  # skill sync/curator skips symlinked SKILL.md (tools/skills_sync_client.py:176),
+  # so agents converted links back to copies and fleet re-linked them: a
+  # ping-pong that read as profiles overwriting each other. Plugins stay links.
+
+# ── packages ────────────────────────────────────────────────────────────────
+# surface kinds:
+#   agent-plugin    → <home>/plugins/<install_as>          (per profile)
+#   desktop-plugin  → ~/.hermes/desktop-plugins/<name>     (GLOBAL, once)
+#   skill           → <home>/skills/[<category>/]<name>    (per profile)
+#   skill-pack      → every SKILL.md dir under `from`      (per profile)
+#   skin-pack       → <home>/skins/*.yaml                  (per profile, mirror)
+#   claude-skill    → ~/.claude/skills/<name>              (Claude Code, once)
+#   mcp-server      → config.yaml mcp_servers.<name>       (per profile, patch)
+#   python-package  → editable install into the Hermes venv (once)
+#
+# `enable: true` adds the plugin id to that profile's `plugins.enabled` list.
+# `enable: staged` installs it and leaves it OFF — present, inventoried, one
+# switch away, but not loaded and not costing context.
+
+# ── credentials ────────────────────────────────────────────────────
+# hermes_cli/env_loader.py loads ONE dotenv per run (<profile home>/.env) and
+# deletes inherited keys on purpose, so every profile needs its own copy of
+# every shared credential. Nothing upstream syncs them; `fleet env` does.
+#
+# KEY NAMES ONLY. This file is committed -- no value ever belongs here.
+env:
+  # Whose value wins for a `shared` key.
+  source: default
+
+  # Must be identical everywhere. `fleet env --apply` propagates these.
+  shared:
+    - A2A_HOST
+    - A2A_PEER_TOKENS
+    - A2A_TRUSTED_PEERS
+    - API_SERVER_ENABLED
+    - API_SERVER_KEY
+    - BROWSERBASE_ADVANCED_STEALTH
+    - BROWSERBASE_PROXIES
+    - BROWSER_INACTIVITY_TIMEOUT
+    - BROWSER_SESSION_TIMEOUT
+    - FIRECRAWL_GATEWAY_URL
+    - GLM_API_KEY
+    - GLM_BASE_URL
+    - HASS_URL
+    - IMAGE_TOOLS_DEBUG
+    - MOA_TOOLS_DEBUG
+    - NOUS_BASE_URL
+    - OBSIDIAN_VAULT_PATH
+    - TERMINAL_ENV
+    - TERMINAL_LIFETIME_SECONDS
+    - TERMINAL_MODAL_IMAGE
+    - TERMINAL_MODAL_MODE
+    - TERMINAL_TIMEOUT
+    - TOOL_GATEWAY_DOMAIN
+    - VISION_TOOLS_DEBUG
+    - WEB_TOOLS_DEBUG
+
+  # Each profile owns its own. Fleet never reads or writes these.
+  per_profile:
+    - A2A_HOME_CHANNEL
+    - BUZZ_ALLOWED_USERS
+    - BUZZ_PRIVATE_KEY
+    - BUZZ_RELAY_URL
+    - CAMOFOX_URL
+    - DISCORD_ALLOWED_USERS
+    - EMAIL_HOME_ADDRESS
+    - HF_TOKEN
+    - LM_API_KEY
+    - NOUS_API_KEY
+    - WHATSAPP_MODE
+
+  # Per-profile AND must not match: two profiles sharing one is the bug.
+  # Reported, never auto-fixed -- only a human picks which profile keeps it.
+  exclusive:
+    - A2A_AGENT_NAME
+    - A2A_PORT
+    - A2A_PUBLIC_URL
+    - DISCORD_BOT_TOKEN
+    - DISCORD_HOME_CHANNEL
+
+  # Belongs to these profiles ONLY. Fleet DELETES it anywhere else -- the one
+  # place fleet removes rather than copies, so it always backs up first.
+  #
+  # google_chat is enabled ONLY on tiferet (platforms.google_chat.enabled);
+# local carried a full copy of the keys, including the same service-account
+# JSON, for a platform it never turns on. Dead config that reads as a
+# credential collision.
+#
+# photon, openrouter, mem0 and kimi are default-only by decision: photon's
+  # project id + secret ARE the bot identity, and Hermes refuses to multiplex a
+  # gateway while two profiles claim the same bot ("the bot can only belong to
+  # one profile"). The other three are unused outside default.
+  confined:
+    "PHOTON_*": [default]
+    "GOOGLE_CHAT_*": [tiferet]
+    "MEM0_*": [default]
+    OPENROUTER_API_KEY: [default]
+    KIMI_CN_API_KEY: [default]
+
+
+packages:
+
+  # ── core: everywhere, including tiferet ──────────────────────────────────
+
+  - name: claude-code
+    source: CLI_delegates/hermes-claude-code
+    summary: >-
+      Delegate coding tasks to Claude Code CLI sub-agents — delegate, research,
+      and 5-way parallel batch, with model routing and per-task budget caps.
+    profiles: [default, jason, tiferet]
+    surfaces:
+      - kind: agent-plugin
+        from: hermes-plugin
+        install_as: claude-code
+        enable: true
+    notes: >-
+      Already installed on all three, but inconsistently — default was a symlink
+      into this repo while local and tiferet were frozen copies. Sync converts
+      all three to links so they can never diverge again. The Node MCP half
+      (server.mjs) is separate and registered per profile if you want it.
+
+  - name: delegate-task-advanced
+    source: delegate-task-advanced
+    summary: >-
+      `delegate_task_advanced` — one focused subagent with per-call skill
+      injection, toolset selection, model override, and JSON-schema-validated
+      output. Complements the built-in delegate_task rather than replacing it.
+    profiles: [default, jason, tiferet]
+    surfaces:
+      - kind: agent-plugin
+        install_as: delegate-task-advanced
+        enable: true
+
+  - name: token-optimizer
+    source: token-optimizer
+    summary: >-
+      Finds and cuts wasted context. Ships its own Hermes half AND its own
+      Claude Code half, so it is the one package that needs no porting — the
+      two halves already exist upstream.
+    profiles: [default, jason, tiferet]
+    surfaces:
+      - kind: external
+        install_as: token-optimizer
+        deploy: skills/token-optimizer/scripts/hermes_install.py
+      - kind: claude-skill
+        from: skills
+        # all five: fleet-auditor, resume-checkpoint, token-coach,
+        # token-dashboard, token-optimizer
+        all: true
+    notes: >-
+      The Hermes half is deliberately NOT linked. `hermes/__init__.py` imports
+      three sibling modules (hermes_hook_bridge, hermes_state, hermes_session)
+      that live in `skills/token-optimizer/scripts/`, and the installer also
+      writes a `measure-path` locator so the plugin shells into the checkout's
+      canonical measure.py instead of a stale copy. A bare symlink of `hermes/`
+      installs a plugin whose imports are broken — which upstream's own docs
+      record as a real past regression. So fleet reports it and defers:
+
+        python skills/token-optimizer/scripts/hermes_install.py --dry-run
+        python skills/token-optimizer/scripts/hermes_install.py --enable
+
+      Run it once per profile with HERMES_HOME pointed at that profile. The
+      installer is idempotent and has its own --uninstall.
+
+  - name: skins-101
+    source: UI_Skins/hermes-skins-pack
+    summary: 101 drop-in CLI/TUI skins, each defining the full 43-key palette.
+    profiles: [default, jason, tiferet]
+    surfaces:
+      - kind: skin-pack
+        from: skins
+        mode: mirror
+    notes: >-
+      default and local already had all 101; tiferet had zero. Skins are inert
+      until `display.skin` selects one, so this costs tiferet nothing and lets
+      each profile look different on purpose — which is worth real money when
+      you are three terminals deep and need to know which agent you are talking
+      to at a glance.
+
+  - name: takeoff-lens
+    source: Takeoff-Lens-Plugin
+    summary: >-
+      AI drawing intelligence for reviewed, traceable quantity takeoff —
+      MCP-powered PDF/vector/layer analysis, symbol detection, markup, and
+      precision/recall measurement. Electrical and ELV are the active
+      disciplines.
+    profiles: [default, jason, tiferet]
+    surfaces:
+      - kind: mcp-server
+        name: takeoff-lens
+        from: start-mcp.ps1
+      - kind: skill
+        from: skills/count-engineering-drawing-symbols
+        category: estimating
+        mode: copy   # skills are ALWAYS copies — see defaults note
+      - kind: claude-skill
+        from: skills
+        all: true
+    notes: >-
+      tiferet's whole reason to exist, but takeoffs happen on default and local
+      too, so all three get it. Not installed anywhere before this — there was
+      no `takeoff` entry in any profile's mcp_servers.
+
+  - name: brain-rag
+    source: RAG
+    summary: >-
+      Local-first hybrid BM25 + vector retrieval over the Obsidian vault and
+      swept Hermes sessions. Cited snippets only.
+    profiles: [default, jason, tiferet]
+    surfaces:
+      - kind: external
+        install_as: brain-rag
+        deploy: scripts/deploy.py
+    notes: >-
+      Already live on all three plus the desktop. It owns its own deploy script
+      with its own exclude list and eval gate, so fleet does NOT materialize it
+      — it records it, reports its state, and defers to `scripts/deploy.cmd`.
+      Declared here so the Fleet matrix shows the whole picture, not most of it.
+
+      THE MEMORY MODEL (2026-09-25). Two layers, no holographic provider:
+      built-in MEMORY.md/USER.md (always in context, shared default+jason via
+      a junction) and this brain (searched on demand). Brains: `shared` =
+      ~/.hermes/rag, used by default AND jason (jason/rag is a junction to it);
+      `tiferet` = its own index, restricted by rag/legs.txt to Construction and
+      never indexing Sessions/ transcripts. Vault `.ragignore` (or
+      `private: true` frontmatter) keeps a note out of EVERY brain — it opens
+      only when asked for by name.
+
+      Upkeep is Task Scheduler `BrainRAG_Nightly` (03:30) running
+      scripts/nightly.py with Hermes' venv python: (1) spill — MEMORY.md/USER.md
+      over 70% of cap move their longest entries to vault Memory/ (committed
+      before the memory file is trimmed, under Hermes' own .lock); (2) sweep —
+      ended sessions older than 7 days to <Leg>/Sessions/, secrets redacted;
+      (3) incremental re-index of both brains. Log: ~/.hermes/rag/nightly.log.
+      Query embeddings time out at 5 s (then BM25-only) and are cached.
+
+  # ── the lab: default + local, never tiferet ──────────────────────────────
+
+  - name: dynamic-workflows
+    source: hermes-dynamic-workflows
+    summary: >-
+      The ENGINE. Model writes a sandboxed Python script at runtime and executes
+      it in a background runtime — agent()/parallel()/pipeline() over many
+      subagents, with concurrency caps, per-agent git worktrees, approval
+      policy, and a 1000-agent runaway guard. Plus a live `hermes-workflows`
+      terminal dashboard.
+    profiles: [default, jason]
+    surfaces:
+      - kind: agent-plugin
+        install_as: dynamic-workflows
+        enable: true
+    notes: >-
+      NOT the same thing as hades-coding-workflows, despite the similar name —
+      see that package's note. Console script needs a separate one-time install:
+      `python scripts/install-hermes-workflows.py`.
+
+  - name: hades-coding-workflows
+    source: null   # installed from upstream, not from this repo
+    upstream: https://github.com/singhguri/hades-coding-workflows
+    summary: >-
+      The PLAYBOOK. Three skills, zero code: dual-model harness,
+      subagent-driven development, and implementation planning patterns.
+    profiles: [default, jason, tiferet]
+    surfaces:
+      - kind: agent-plugin
+        install_as: hades-coding-workflows
+        managed: upstream
+        enable: true
+    notes: >-
+      Kept alongside dynamic-workflows on purpose. hades is how to THINK about
+      decomposing work (prose the model reads); dynamic-workflows is the machine
+      that FANS IT OUT (code that spawns agents). One teaches, one executes.
+      They are complementary, not duplicates — this note exists so that question
+      does not have to be re-answered a third time.
+
+  - name: self-evolution
+    source: Self-Evolution/hermes-agent-self-evolution
+    summary: >-
+      DSPy + GEPA evolutionary optimization of skills and prompts. Reads
+      execution traces to learn WHY something failed, mutates, gates on tests
+      and benchmarks, and emits the winning variant. Offline; ~$2-10 a run.
+    profiles: [default, jason]
+    surfaces:
+      - kind: python-package
+        editable: true
+        venv: ~/.hermes/hermes-agent/venv
+      - kind: skill
+        from: _skills/gepa-optimization
+        category: development
+        mode: copy   # skills are ALWAYS copies — see defaults note
+    notes: >-
+      Already pip-installed editable into the Hermes venv (evolution, dspy and
+      gepa all import and resolve back to this folder) — that part was done. The
+      gap was the `gepa-optimization` operating skill, which existed only on
+      local and was documented nowhere. Distinct from the `hermes-evolve`
+      plugin: that one hot-reloads plugins and rewrites the system prompt LIVE
+      in-session; this is an OFFLINE optimizer that produces better skills.
+      Complementary, never melded.
+
+  - name: bot-kit-agent
+    source: hermes-bot-kit
+    summary: >-
+      The agent half of Hermes Bot Kit — `texting-style` makes bots talk like
+      texting (short replies, mirrors your length, "on it" then the result) and
+      ONLY inside Bot Mode chats. Regular sessions stay stock.
+    profiles: [default, jason]
+    surfaces:
+      - kind: agent-plugin
+        from: texting-style
+        install_as: texting-style
+        enable: true
+      - kind: agent-plugin
+        from: computer-viewer/agent-plugin/orgo-computer
+        install_as: orgo-computer
+        enable: false
+    notes: >-
+      orgo-computer gives bots real hands (shell + screenshot/click/type) on a
+      pinned machine. Installed but left OFF — that is a capability you turn on
+      deliberately, per profile, never by default, and never on tiferet.
+
+  # ── desktop: GLOBAL. `profiles:` is intentionally absent. ────────────────
+
+  - name: bot-kit-desktop
+    source: hermes-bot-kit
+    summary: >-
+      The four desktop halves of Hermes Bot Kit — iMessage-style Bot Chat,
+      named roster sections, a pinned Tasks dock, and a live remote-desktop pane
+      that auto-connects the moment a bot starts using its computer.
+    global: true
+    surfaces:
+      - kind: desktop-plugin
+        from: bubble-mode
+        install_as: bubble-mode
+      - kind: desktop-plugin
+        from: bot-sections
+        install_as: bot-sections
+      - kind: desktop-plugin
+        from: task-dock
+        install_as: task-dock
+      - kind: desktop-plugin
+        from: computer-viewer
+        install_as: computer-viewer
+    notes: >-
+      Upstream installs via `curl | bash`, which is not a thing on this machine.
+      fleet materializes them directly — same result, idempotent, no network,
+      and pinned to this repo's checkout.
+
+  - name: hermes-fleet
+    source: hermes-fleet
+    summary: >-
+      This fleet, as a UI. An open widget grid (drag / resize / swap /
+      trash-to-delete, themed off --home-accent so it sits beside Home rather
+      than fighting it) with a PUBLIC widget registry other plugins can register
+      into — plus the package x profile matrix, live drift against this file,
+      and per-profile context budget.
+    profiles: [default, jason, tiferet]
+    surfaces:
+      - kind: agent-plugin
+        install_as: hermes-fleet
+        enable: true
+    notes: >-
+      A unified package: the agent half (plugin.yaml + plugin_api.py) installs
+      into all three profiles, and the desktop app copies `desktop/plugin.js`
+      out to ~/.hermes/desktop-plugins/hermes-fleet/ by itself. Built this way
+      deliberately — one entry, both halves, and the desktop half stays global
+      the way the loader wants.
+
+  # ── authored here, installed on both hosts ───────────────────────────────
+
+  - name: fleet-skills
+    source: skills
+    summary: >-
+      Skills written in this repo rather than vendored from a package. Today
+      that is `hermes-fleet` — how to operate a three-profile install without
+      breaking one of them.
+    profiles: [default, jason, tiferet]
+    surfaces:
+      - kind: claude-skill
+        from: claude
+        all: true
+      - kind: skill
+        from: hermes
+        category: hermes
+        mode: copy   # skills are ALWAYS copies — see defaults note
+    notes: >-
+      `skills/claude/` is the source of truth and `skills/hermes/` is GENERATED
+      from it by `fleet port`. Both halves install from this one package, which
+      is the point: edit the Claude side, re-port, sync, and both hosts move
+      together instead of drifting into two different answers to the same
+      question. See skills/PORTING.md.
+
+# ── claude code ─────────────────────────────────────────────────────────────
+# Skills whose HOME is Claude Code, not Hermes. The file format is identical
+# (`SKILL.md` + name/description frontmatter — ~/.claude/skills/brainstorming
+# and ~/.hermes/profiles/local/skills/brainstorming are byte-identical today),
+# so "porting" is never a format conversion. It is a CONTENT port: Claude tool
+# names and paths map to Hermes ones, and Hermes nests skills under a category
+# directory while Claude is flat. See skills/PORTING.md and fleet/port.py.
+claude:
+  home: ~/.claude
+  skills_dir: ~/.claude/skills
+  # Source of truth for both halves. `claude/` installs to ~/.claude/skills;
+  # `hermes/` is generated from it by fleet/port.py and installs per profile.
+  source: skills
