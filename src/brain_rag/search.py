@@ -18,6 +18,30 @@ CANDIDATE_LIMIT = 50
 DEFAULT_K = 8
 MAX_K = 50
 
+# A query embedding is one short round trip; anything slower than this is an
+# outage, and BM25 alone beats a turn frozen on the 60 s indexing timeout.
+QUERY_TIMEOUT_SECONDS = 5.0
+QUERY_CACHE_SIZE = 256
+_query_cache: dict[str, list[float]] = {}
+
+
+def clear_query_cache() -> None:
+    _query_cache.clear()
+
+
+def _query_vector(query: str) -> list[float] | None:
+    """Embed one query, memoized. Only successes are cached — an outage retries."""
+    key = query.strip()
+    if key in _query_cache:
+        return _query_cache[key]
+    vectors = embed_texts([key], timeout=QUERY_TIMEOUT_SECONDS)
+    if not vectors:
+        return None
+    if len(_query_cache) >= QUERY_CACHE_SIZE:
+        _query_cache.pop(next(iter(_query_cache)))
+    _query_cache[key] = vectors[0]
+    return vectors[0]
+
 
 def rrf_merge(*ranked_lists: Sequence[dict], k: int = RRF_K) -> list[dict]:
     """Reciprocal rank fusion. Rank position only — never raw scores.
@@ -104,8 +128,14 @@ def search(
     source: str = "all",
     k: int = 8,
     vault_dir: str | Path | None = None,
+    allowed_legs: Sequence[str] | None = None,
 ) -> dict[str, Any]:
-    """Hybrid search. Returns ``{"hits": [...], "vector": "used"|"skipped"}``."""
+    """Hybrid search. Returns ``{"hits": [...], "vector": "used"|"skipped"}``.
+
+    ``allowed_legs`` is the profile's hard boundary (tiferet: Construction
+    only). It is enforced here as well as at index time, so a stale index
+    built before the restriction can never leak another leg.
+    """
     missing = _missing_vault_error(vault_dir)
     if missing:
         return {"error": missing}
@@ -120,9 +150,9 @@ def search(
     vector_state = "used"
     knn_rows: list[dict] = []
     try:
-        vectors = embed_texts([query])
-        if vectors:
-            knn_rows = store.knn(vectors[0], limit=CANDIDATE_LIMIT)
+        vector = _query_vector(query)
+        if vector:
+            knn_rows = store.knn(vector, limit=CANDIDATE_LIMIT)
     except EmbeddingsUnavailable:
         vector_state = "skipped"
 
@@ -130,5 +160,6 @@ def search(
     filtered = [
         row for row in merged
         if _passes(row, leg=leg, after=after, before=before, source=source)
+        and (allowed_legs is None or (row.get("leg") in allowed_legs and row.get("source") != "session"))
     ]
     return {"hits": [_to_hit(r) for r in filtered[:k]], "vector": vector_state}

@@ -38,6 +38,14 @@ def test_no_hardcoded_colors():
     assert "rgb(" not in source
 
 
+def test_embeds_vault_graph_in_brain_pane():
+    source = PLUGIN_JS.read_text(encoding="utf-8")
+    assert "vault-graph" in source
+    assert "embed=1" in source
+    assert "persist:brain-rag" in source
+    assert "HTMLWebViewElement" in source
+
+
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not on PATH")
 def test_node_syntax_check_passes():
     result = subprocess.run(["node", "--check", str(PLUGIN_JS)], capture_output=True, text=True)

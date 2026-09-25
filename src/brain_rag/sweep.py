@@ -15,6 +15,7 @@ from typing import Any, Callable
 
 from brain_rag.chunk import strip_tool_json
 from brain_rag.leg import leg_for_cwd
+from brain_rag.redact import redact
 
 DEFAULT_OLDER_THAN_DAYS = 7
 
@@ -60,11 +61,11 @@ def render_session_note(
         f"source: {source}",
         "---",
         "",
-        f"# {title or 'Session'} ({started})",
+        f"# {redact(title or 'Session')} ({started})",
         "",
     ]
     for turn in turns:
-        content = strip_tool_json(turn.get("content") or "")
+        content = redact(strip_tool_json(turn.get("content") or ""))
         if not content:
             continue
         role = turn.get("role")
@@ -98,7 +99,7 @@ def sweep_sessions(
         return result
 
     try:
-        git(["pull", "--rebase"], vault)
+        git(["pull", "--rebase", "--autostash"], vault)
     except Exception as exc:  # noqa: BLE001
         result["error"] = f"vault pull failed: {exc}"
         return result

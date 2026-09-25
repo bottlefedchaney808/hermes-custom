@@ -67,7 +67,7 @@ async def search_endpoint(body: SearchRequest):
             result = engine["search"].search(
                 store, body.query, leg=body.leg, after=body.after,
                 before=body.before, source=body.source, k=body.k,
-                vault_dir=vault,
+                vault_dir=vault, allowed_legs=helpers.allowed_legs(),
             )
         finally:
             store.close()
@@ -88,7 +88,8 @@ async def index_endpoint(body: IndexRequest):
         store = engine["store"].Store.open(helpers.index_path())
         try:
             return engine["index"].index_vault(
-                helpers.vault_path(), store, mode=body.mode
+                helpers.vault_path(), store, mode=body.mode,
+                legs=helpers.allowed_legs(),
             )
         finally:
             store.close()

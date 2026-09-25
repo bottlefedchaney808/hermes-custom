@@ -65,6 +65,9 @@ def test_rag_search_does_not_pass_negative_k_as_tail_slice(monkeypatch, tmp_path
     captured = {}
 
     class FakeEngineHelpers:
+        def allowed_legs(self):
+            return None
+
         def load(self):
             return {
                 "store": _store_mod(),
@@ -99,6 +102,9 @@ def test_rag_search_does_not_pass_negative_k_as_tail_slice(monkeypatch, tmp_path
 
 def test_rag_search_errors_when_vault_missing(monkeypatch, tmp_path):
     class FakeEngineHelpers:
+        def allowed_legs(self):
+            return None
+
         def load(self):
             def fake_search(*_a, **_k):
                 return {

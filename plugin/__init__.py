@@ -108,6 +108,7 @@ def _handle_rag_search(args, **_kwargs) -> str:
                 source=args.get("source", "all"),
                 k=_clamp_k(args.get("k", 8)),
                 vault_dir=vault,
+                allowed_legs=helpers.allowed_legs(),
             )
         finally:
             store.close()
@@ -123,7 +124,9 @@ def _handle_rag_index(args, **_kwargs) -> str:
         engine = helpers.load()
         store = engine["store"].Store.open(helpers.index_path())
         try:
-            result = engine["index"].index_vault(helpers.vault_path(), store, mode=mode)
+            result = engine["index"].index_vault(
+                helpers.vault_path(), store, mode=mode, legs=helpers.allowed_legs(),
+            )
         finally:
             store.close()
         return json.dumps(result)

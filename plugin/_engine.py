@@ -59,6 +59,27 @@ def index_path() -> Path:
     return base / "rag" / "brain.sqlite"
 
 
+def allowed_legs() -> tuple[str, ...] | None:
+    """Legs this profile may see, from ``rag/legs.txt`` beside the index.
+
+    One leg per line (``#`` comments allowed). Absent file = every leg. A
+    file that names no valid leg fails closed (sees nothing) rather than
+    silently opening the whole vault.
+    """
+    path = index_path().parent / "legs.txt"
+    if not path.is_file():
+        return None
+    load()
+    from brain_rag.leg import LEGS
+
+    names = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        name = line.split("#", 1)[0].strip()
+        if name in LEGS:
+            names.append(name)
+    return tuple(names)
+
+
 def vault_path() -> Path:
     import os
 

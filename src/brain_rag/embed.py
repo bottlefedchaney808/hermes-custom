@@ -64,8 +64,13 @@ def embed_texts(
     *,
     token_provider: Callable[[], str] | None = None,
     client=None,
+    timeout: float = TIMEOUT_SECONDS,
 ) -> list[list[float]]:
-    """Embed ``texts`` in batches. Returns one vector per input, in order."""
+    """Embed ``texts`` in batches. Returns one vector per input, in order.
+
+    ``timeout`` defaults to the indexing budget; search passes a short one so
+    a slow Nous endpoint degrades to BM25 instead of stalling the turn.
+    """
     if not texts:
         return []
 
@@ -78,7 +83,7 @@ def embed_texts(
         raise EmbeddingsUnavailable(f"Nous token unavailable: {exc}") from exc
 
     owns_client = client is None
-    http = client or httpx.Client(timeout=TIMEOUT_SECONDS)
+    http = client or httpx.Client(timeout=timeout)
     vectors: list[list[float]] = []
     try:
         for start in range(0, len(texts), BATCH_SIZE):
