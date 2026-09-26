@@ -369,7 +369,7 @@ packages:
     summary: >-
       The agent half of Hermes Bot Kit — `texting-style` makes bots talk like
       texting (short replies, mirrors your length, "on it" then the result) and
-      ONLY inside Bot Mode chats. Regular sessions stay stock.
+      ONLY inside Bot Mode chats. Regular sessions stay stock. Also ships `agent-eyes` (eyes_open/close + stills hook) on default+jason.
     profiles: [default, jason]
     surfaces:
       - kind: agent-plugin
@@ -377,13 +377,73 @@ packages:
         install_as: texting-style
         enable: true
       - kind: agent-plugin
-        from: computer-viewer/agent-plugin/orgo-computer
+        from: agent-eyes/agent-plugin/orgo-computer
         install_as: orgo-computer
         enable: false
+      - kind: agent-plugin
+        from: agent-eyes/agent-plugin/agent-eyes
+        install_as: agent-eyes
+        enable: true
     notes: >-
-      orgo-computer gives bots real hands (shell + screenshot/click/type) on a
-      pinned machine. Installed but left OFF — that is a capability you turn on
-      deliberately, per profile, never by default, and never on tiferet.
+      agent-eyes gives the human a view of what the bot is looking at (eyes_open + stills). orgo-computer (parked) gives hands on a pinned machine but stays OFF by default, never on tiferet.
+
+  # ── extra user plugins: default+jason even; never tiferet ───────────────
+  # These live in ~/.hermes/plugins (git clones or local dirs), not this
+  # checkout. Declared so `fleet status` sees jason drift instead of going
+  # blind. Install with `hermes plugins install <upstream>` then junction
+  # jason/plugins/<name> -> ~/.hermes/plugins/<name>. NEVER copy.
+  # hermes-achievements is bundled — do NOT drop a user overlay; it shadows
+  # the in-tree plugin, requires plugins.enabled, and 404s the desktop API.
+
+  - name: agent-analytics
+    source: null
+    upstream: https://github.com/Agent-Analytics/agent-analytics-hermes-plugin
+    profiles: [default, jason]
+    surfaces:
+      - kind: agent-plugin
+        install_as: agent-analytics
+        managed: upstream
+        enable: true
+
+  - name: hermes-evolve
+    source: null
+    upstream: https://github.com/nuffin/hermes-evolve
+    profiles: [default, jason]
+    surfaces:
+      - kind: agent-plugin
+        install_as: hermes-evolve
+        managed: upstream
+        enable: true
+
+  - name: hermes-memory-ui
+    source: null
+    upstream: https://github.com/xraysight/hermes-memory-ui
+    profiles: [default, jason]
+    surfaces:
+      - kind: agent-plugin
+        install_as: hermes-memory-ui
+        managed: upstream
+        enable: true
+
+  - name: hermes-newswire
+    source: null
+    upstream: https://github.com/tony-simons-aiowa/hermes-newswire
+    profiles: [default, jason]
+    surfaces:
+      - kind: agent-plugin
+        install_as: hermes-newswire
+        managed: upstream
+        enable: true
+
+  - name: memory-wiki
+    source: null
+    upstream: https://github.com/NousResearch/hermes-memory-wiki
+    profiles: [default, jason]
+    surfaces:
+      - kind: agent-plugin
+        install_as: memory-wiki
+        managed: upstream
+        enable: true
 
   # ── desktop: GLOBAL. `profiles:` is intentionally absent. ────────────────
 
@@ -391,8 +451,7 @@ packages:
     source: hermes-bot-kit
     summary: >-
       The four desktop halves of Hermes Bot Kit — iMessage-style Bot Chat,
-      named roster sections, a pinned Tasks dock, and a live remote-desktop pane
-      that auto-connects the moment a bot starts using its computer.
+      named roster sections, a pinned Tasks dock, and Agent Eyes (what the focused bot is looking at: live page + stills).
     global: true
     surfaces:
       - kind: desktop-plugin
@@ -405,12 +464,12 @@ packages:
         from: task-dock
         install_as: task-dock
       - kind: desktop-plugin
-        from: computer-viewer
-        install_as: computer-viewer
+        from: agent-eyes
+        install_as: agent-eyes
     notes: >-
       Upstream installs via `curl | bash`, which is not a thing on this machine.
       fleet materializes them directly — same result, idempotent, no network,
-      and pinned to this repo's checkout.
+      and pinned to this repo's checkout. Agent Eyes shows the focused bot's page + stills (replaces the old Computer VNC surface).
 
   - name: hermes-fleet
     source: hermes-fleet
