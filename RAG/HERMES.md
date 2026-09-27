@@ -10,6 +10,9 @@ Local-first hybrid BM25 + vector retrieval over the Obsidian vault and swept Her
 
 Profiles: `default`, `jason`, `tiferet`
 
+Deliberately NOT on: `gork`. That is a tiering decision, not an oversight —
+see the note below and `fleet.yaml`.
+
 | surface | where it lands | how |
 |---|---|---|
 | `external` | `C:\Users\bottl\.hermes\plugins\brain-rag` (default) | external |
@@ -50,4 +53,4 @@ Upkeep is Task Scheduler `BrainRAG_Nightly` (03:30) running scripts/nightly.py w
 
 ---
 
-Generated 2026-09-25 from `fleet.yaml`. See [FLEET.md](../FLEET.md) for the model.
+Generated 2026-09-27 from `fleet.yaml`. See [FLEET.md](../FLEET.md) for the model.

@@ -10,6 +10,9 @@ Skills written in this repo rather than vendored from a package. Today that is `
 
 Profiles: `default`, `jason`, `tiferet`
 
+Deliberately NOT on: `gork`. That is a tiering decision, not an oversight —
+see the note below and `fleet.yaml`.
+
 | surface | where it lands | how |
 |---|---|---|
 | `claude-skill` | `C:\Users\bottl\.claude\skills\hermes-fleet` (claude) | link |
@@ -55,4 +58,4 @@ rm -rf 'C:\Users\bottl\.hermes\profiles\tiferet\skills\hermes\hermes-fleet'
 
 ---
 
-Generated 2026-09-25 from `fleet.yaml`. See [FLEET.md](../FLEET.md) for the model.
+Generated 2026-09-27 from `fleet.yaml`. See [FLEET.md](../FLEET.md) for the model.

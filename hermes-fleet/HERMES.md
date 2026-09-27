@@ -10,6 +10,9 @@ This fleet, as a UI. An open widget grid (drag / resize / swap / trash-to-delete
 
 Profiles: `default`, `jason`, `tiferet`
 
+Deliberately NOT on: `gork`. That is a tiering decision, not an oversight —
+see the note below and `fleet.yaml`.
+
 | surface | where it lands | how |
 |---|---|---|
 | `agent-plugin` | `C:\Users\bottl\.hermes\plugins\hermes-fleet` (default) | link |
@@ -56,4 +59,4 @@ A unified package: the agent half (plugin.yaml + plugin_api.py) installs into al
 
 ---
 
-Generated 2026-09-25 from `fleet.yaml`. See [FLEET.md](../FLEET.md) for the model.
+Generated 2026-09-27 from `fleet.yaml`. See [FLEET.md](../FLEET.md) for the model.
