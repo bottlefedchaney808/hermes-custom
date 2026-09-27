@@ -4,8 +4,8 @@
 # --------------------
 # Hermes resolves agent plugins, skills and skins from exactly one place:
 # `get_hermes_home()` (hermes_cli/plugins_discovery.py:158). There is no shared
-# path, no search list, no "install once for every profile". Three profiles
-# means three physical trees, forever.
+# path, no search list, no "install once for every profile". Profiles (default, jason, tiferet, gork)
+# each get their own physical trees.
 #
 # Before this file, that was managed by hand, and it had already drifted:
 # `claude-code` was a live symlink on default and a frozen copy on local and
@@ -54,6 +54,11 @@ profiles:
       Construction only, and company-facing. Stays deliberately narrow: takeoff
       and core tooling, nothing from the lab. Every skill added here is context
       paid for on every single turn of a bot customers talk to.
+  gork:
+    home: ~/.hermes/profiles/gork
+    role: >-
+      Grok-Powered Generalist (profile gork). Lab-adjacent, not company-facing.
+      Gets Agent Eyes so the human can see what this bot is looking at.
 
 # ── defaults ────────────────────────────────────────────────────────────────
 defaults:
@@ -369,7 +374,7 @@ packages:
     summary: >-
       The agent half of Hermes Bot Kit — `texting-style` makes bots talk like
       texting (short replies, mirrors your length, "on it" then the result) and
-      ONLY inside Bot Mode chats. Regular sessions stay stock. Also ships `agent-eyes` (eyes_open/close + stills hook) on default+jason.
+      ONLY inside Bot Mode chats. Regular sessions stay stock. (agent-eyes split to its own package).
     profiles: [default, jason]
     surfaces:
       - kind: agent-plugin
@@ -380,12 +385,23 @@ packages:
         from: agent-eyes/agent-plugin/orgo-computer
         install_as: orgo-computer
         enable: false
+    notes: >-
+      orgo-computer (parked) gives hands on a pinned machine but stays OFF by default, never on tiferet.
+
+  - name: agent-eyes
+    source: hermes-bot-kit
+    summary: >-
+      Agent Eyes agent plugin — eyes_open / eyes_close + stills hook. Desktop
+      half is global via bot-kit-desktop.
+    profiles: [default, jason, gork]
+    surfaces:
       - kind: agent-plugin
         from: agent-eyes/agent-plugin/agent-eyes
         install_as: agent-eyes
         enable: true
     notes: >-
-      agent-eyes gives the human a view of what the bot is looking at (eyes_open + stills). orgo-computer (parked) gives hands on a pinned machine but stays OFF by default, never on tiferet.
+      Not tiferet. Not texting-style. gork is included so this bot can show
+      pages; do not fold gork into bot-kit-agent (that would install texting-style).
 
   # ── extra user plugins: default+jason even; never tiferet ───────────────
   # These live in ~/.hermes/plugins (git clones or local dirs), not this
