@@ -14,6 +14,7 @@ set "SRC=%BRAIN_RAG_DEPLOY_SRC%"
 if defined BRAIN_RAG_DEPLOY_ROOTS goto roots_from_env
 set "ROOTS=%LOCALAPPDATA%\hermes\plugins\brain-rag"
 set "ROOTS=%ROOTS%;%LOCALAPPDATA%\hermes\profiles\local-agent\plugins\brain-rag"
+set "ROOTS=%ROOTS%;%LOCALAPPDATA%\hermes\profiles\coder\plugins\brain-rag"
 goto roots_ready
 :roots_from_env
 set "ROOTS=%BRAIN_RAG_DEPLOY_ROOTS%"

@@ -38,27 +38,39 @@ version: 1
 # ── profiles ────────────────────────────────────────────────────────────────
 # `home` is the HERMES_HOME each profile resolves to. `default` is the bare
 # `~/.hermes`; named profiles live under `profiles/<name>/`.
+# NOTE (2026-10-03, install execution): on THIS box the canonical Hermes root is
+# %LOCALAPPDATA%\hermes (C:\Users\bottl\AppData\Local\hermes), NOT ~/.hermes.
+# `~/.hermes` (C:\Users\bottl\.hermes) is the LEGACY root holding only the stale
+# `profiles/tiferet` residue (quarantined). The `home:` values below still say
+# `~/.hermes` because that is what the rest of this manifest was written against;
+# a full root-path rewrite is BLOCKED for this box, so installs proceed via the
+# `hermes` CLI (validate/enable/doctor), not `fleet sync --apply`. `default`'s
+# home is the root itself; named profiles live under profiles/<name>/.
 profiles:
   default:
     home: ~/.hermes
     role: >-
       Daily driver. Gets everything, including the experimental lab.
-  jason:
-    home: ~/.hermes/profiles/jason
+  coder:
+    home: ~/.hermes/profiles/coder
+    managed: local
     role: >-
-      Personal profile (replaced `local`, 2026-09). Gets the lab. Shares the
-      memory brain with default; tiferet deliberately does not.
+      Active coding profile on this box (HERMES_HOME). Gets the lab.
+  # tiferet + gork belong to the WORKER's own migration kit (zinko83@100.121.48.59).
+  # Marked managed-elsewhere so `fleet sync` never touches them from here.
   tiferet:
     home: ~/.hermes/profiles/tiferet
+    managed: worker
     role: >-
-      Construction only, and company-facing. Stays deliberately narrow: takeoff
-      and core tooling, nothing from the lab. Every skill added here is context
-      paid for on every single turn of a bot customers talk to.
+      Construction only, and company-facing. Owned by the worker's migration kit —
+      this plan does NOT deploy or configure it.
   gork:
     home: ~/.hermes/profiles/gork
+    managed: worker
     role: >-
-      Grok-Powered Generalist (profile gork). Lab-adjacent, not company-facing.
-      Gets Agent Eyes so the human can see what this bot is looking at.
+      Grok-Powered Generalist. Owned by the worker's migration kit — this plan
+      does NOT deploy or configure it.
+  # `jason` removed (2026-10-03): phantom — absent from every profile dir on this box.
 
 # ── defaults ────────────────────────────────────────────────────────────────
 defaults:
@@ -179,7 +191,7 @@ packages:
     summary: >-
       Delegate coding tasks to Claude Code CLI sub-agents — delegate, research,
       and 5-way parallel batch, with model routing and per-task budget caps.
-    profiles: [default, jason, tiferet]
+    profiles: [default, coder, tiferet]
     surfaces:
       - kind: agent-plugin
         from: hermes-plugin
@@ -197,7 +209,7 @@ packages:
       `delegate_task_advanced` — one focused subagent with per-call skill
       injection, toolset selection, model override, and JSON-schema-validated
       output. Complements the built-in delegate_task rather than replacing it.
-    profiles: [default, jason, tiferet]
+    profiles: [default, coder, tiferet]
     surfaces:
       - kind: agent-plugin
         install_as: delegate-task-advanced
@@ -209,11 +221,11 @@ packages:
       Finds and cuts wasted context. Ships its own Hermes half AND its own
       Claude Code half, so it is the one package that needs no porting — the
       two halves already exist upstream.
-    profiles: [default, jason, tiferet]
+    profiles: [default, coder, tiferet]
     surfaces:
       - kind: external
         install_as: token-optimizer
-        deploy: skills/token-optimizer/scripts/hermes_install.py
+        deploy: token-optimizer/skills/token-optimizer/scripts/hermes_install.py
       - kind: claude-skill
         from: skills
         # all five: fleet-auditor, resume-checkpoint, token-coach,
@@ -237,7 +249,7 @@ packages:
   - name: skins-101
     source: UI_Skins/hermes-skins-pack
     summary: 101 drop-in CLI/TUI skins, each defining the full 43-key palette.
-    profiles: [default, jason, tiferet]
+    profiles: [default, coder, tiferet]
     surfaces:
       - kind: skin-pack
         from: skins
@@ -256,7 +268,7 @@ packages:
       MCP-powered PDF/vector/layer analysis, symbol detection, markup, and
       precision/recall measurement. Electrical and ELV are the active
       disciplines.
-    profiles: [default, jason, tiferet]
+    profiles: [default, coder, tiferet]
     surfaces:
       - kind: mcp-server
         name: takeoff-lens
@@ -278,7 +290,7 @@ packages:
     summary: >-
       Local-first hybrid BM25 + vector retrieval over the Obsidian vault and
       swept Hermes sessions. Cited snippets only.
-    profiles: [default, jason, tiferet]
+    profiles: [default, coder, tiferet]
     surfaces:
       - kind: external
         install_as: brain-rag
@@ -316,7 +328,7 @@ packages:
       subagents, with concurrency caps, per-agent git worktrees, approval
       policy, and a 1000-agent runaway guard. Plus a live `hermes-workflows`
       terminal dashboard.
-    profiles: [default, jason]
+    profiles: [default, coder]
     surfaces:
       - kind: agent-plugin
         install_as: dynamic-workflows
@@ -332,7 +344,7 @@ packages:
     summary: >-
       The PLAYBOOK. Three skills, zero code: dual-model harness,
       subagent-driven development, and implementation planning patterns.
-    profiles: [default, jason, tiferet]
+    profiles: [default, coder, tiferet]
     surfaces:
       - kind: agent-plugin
         install_as: hades-coding-workflows
@@ -351,7 +363,7 @@ packages:
       DSPy + GEPA evolutionary optimization of skills and prompts. Reads
       execution traces to learn WHY something failed, mutates, gates on tests
       and benchmarks, and emits the winning variant. Offline; ~$2-10 a run.
-    profiles: [default, jason]
+    profiles: [default, coder]
     surfaces:
       - kind: python-package
         editable: true
@@ -375,7 +387,7 @@ packages:
       The agent half of Hermes Bot Kit — `texting-style` makes bots talk like
       texting (short replies, mirrors your length, "on it" then the result) and
       ONLY inside Bot Mode chats. Regular sessions stay stock. (agent-eyes split to its own package).
-    profiles: [default, jason]
+    profiles: [default, coder]
     surfaces:
       - kind: agent-plugin
         from: texting-style
@@ -393,7 +405,7 @@ packages:
     summary: >-
       Agent Eyes agent plugin — eyes_open / eyes_close + stills hook. Desktop
       half is global via bot-kit-desktop.
-    profiles: [default, jason, gork]
+    profiles: [default, coder, gork]
     surfaces:
       - kind: agent-plugin
         from: agent-eyes/agent-plugin/agent-eyes
@@ -414,7 +426,7 @@ packages:
   - name: agent-analytics
     source: null
     upstream: https://github.com/Agent-Analytics/agent-analytics-hermes-plugin
-    profiles: [default, jason]
+    profiles: [default, coder]
     surfaces:
       - kind: agent-plugin
         install_as: agent-analytics
@@ -424,7 +436,7 @@ packages:
   - name: hermes-evolve
     source: null
     upstream: https://github.com/nuffin/hermes-evolve
-    profiles: [default, jason]
+    profiles: [default, coder]
     surfaces:
       - kind: agent-plugin
         install_as: hermes-evolve
@@ -434,7 +446,7 @@ packages:
   - name: hermes-memory-ui
     source: null
     upstream: https://github.com/xraysight/hermes-memory-ui
-    profiles: [default, jason]
+    profiles: [default, coder]
     surfaces:
       - kind: agent-plugin
         install_as: hermes-memory-ui
@@ -444,7 +456,7 @@ packages:
   - name: hermes-newswire
     source: null
     upstream: https://github.com/tony-simons-aiowa/hermes-newswire
-    profiles: [default, jason]
+    profiles: [default, coder]
     surfaces:
       - kind: agent-plugin
         install_as: hermes-newswire
@@ -454,7 +466,7 @@ packages:
   - name: memory-wiki
     source: null
     upstream: https://github.com/NousResearch/hermes-memory-wiki
-    profiles: [default, jason]
+    profiles: [default, coder]
     surfaces:
       - kind: agent-plugin
         install_as: memory-wiki
@@ -495,7 +507,7 @@ packages:
       than fighting it) with a PUBLIC widget registry other plugins can register
       into — plus the package x profile matrix, live drift against this file,
       and per-profile context budget.
-    profiles: [default, jason, tiferet]
+    profiles: [default, coder, tiferet]
     surfaces:
       - kind: agent-plugin
         install_as: hermes-fleet
@@ -515,7 +527,7 @@ packages:
       Skills written in this repo rather than vendored from a package. Today
       that is `hermes-fleet` — how to operate a three-profile install without
       breaking one of them.
-    profiles: [default, jason, tiferet]
+    profiles: [default, coder, tiferet]
     surfaces:
       - kind: claude-skill
         from: claude

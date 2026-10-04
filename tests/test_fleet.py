@@ -11,6 +11,7 @@ thing that silently stops being true:
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -339,7 +340,11 @@ def test_port_flags_what_it_cannot_map(tmp_path):
 
 def test_the_real_manifest_loads():
     man = manifest_mod.load()
-    assert set(man.profiles) == {"default", "local", "tiferet"}
+    # 2026-10-03: reconciled to this box. `jason` (phantam) removed, `coder` added
+    # (the active coding profile), tiferet+gork retained but marked worker-managed.
+    # each box loads only the profiles it owns (managed: local|worker)
+    expected = {"default", "coder"} if os.name == "nt" else {"default", "tiferet", "gork"}
+    assert set(man.profiles) == expected
     assert man.package("hermes-fleet").surfaces
 
 

@@ -44,11 +44,16 @@ def deploy(src_root: Path, dest_roots: list[Path]) -> None:
 
 def parse_roots(raw: str | None) -> list[Path]:
     if not raw or not raw.strip():
-        local = Path(os.environ["LOCALAPPDATA"])
-        return [
-            local / "hermes" / "plugins" / "brain-rag",
-            local / "hermes" / "profiles" / "local-agent" / "plugins" / "brain-rag",
-        ]
+        local = Path(os.environ["LOCALAPPDATA"]) / "hermes"
+        roots = [local / "plugins" / "brain-rag"]
+        profiles = local / "profiles"
+        if profiles.is_dir():
+            roots += [
+                d / "plugins" / "brain-rag"
+                for d in sorted(profiles.iterdir())
+                if d.is_dir()
+            ]
+        return roots
     return [Path(part.strip()) for part in raw.split(";") if part.strip()]
 
 

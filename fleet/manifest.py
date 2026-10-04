@@ -28,13 +28,34 @@ VALID_MODES = {"link", "copy", "mirror"}
 VALID_ENABLE = {True, False, "staged"}
 
 
+_REMOTE: set = set()
+
+
 class ManifestError(RuntimeError):
     """fleet.yaml is malformed. Always fatal — never degrade to a partial run."""
 
 
+def _hermes_root() -> Optional[Path]:
+    """Real Hermes root when it is not ~/.hermes (Windows: LOCALAPPDATA/hermes)."""
+    env = os.environ.get("HERMES_ROOT")
+    if env:
+        return Path(os.path.expanduser(env))
+    lad = os.environ.get("LOCALAPPDATA")
+    if os.name == "nt" and lad and (Path(lad) / "hermes" / "config.yaml").is_file():
+        return Path(lad) / "hermes"
+    return None
+
+
 def expand(raw: str) -> Path:
-    """`~/.hermes/profiles/local` -> an absolute Path, on any platform."""
-    return Path(os.path.expanduser(str(raw))).resolve()
+    """`~/.hermes/profiles/local` -> an absolute Path, on any platform.
+
+    `~/.hermes` is rewritten to the real Hermes root when it lives elsewhere.
+    """
+    raw = str(raw)
+    root = _hermes_root()
+    if root is not None and (raw == "~/.hermes" or raw.startswith("~/.hermes/")):
+        return (root / raw[len("~/.hermes/"):]).resolve() if raw != "~/.hermes" else root.resolve()
+    return Path(os.path.expanduser(raw)).resolve()
 
 
 @dataclass(frozen=True)
@@ -163,6 +184,12 @@ def load(path: Path = MANIFEST_PATH) -> Manifest:
 
     profiles: Dict[str, Profile] = {}
     for name, body in (raw.get("profiles") or {}).items():
+        # managed: worker -> owned by the Linux worker box, skipped on Windows.
+        # managed: local  -> owned by the Windows box, skipped on POSIX.
+        owner = body.get("managed")
+        if (owner == "worker" and os.name == "nt") or (owner == "local" and os.name != "nt"):
+            _REMOTE.add(name)
+            continue
         home = expand(body["home"])
         profiles[name] = Profile(name=name, home=home, role=(body.get("role") or "").strip())
     if not profiles:
@@ -183,7 +210,7 @@ def load(path: Path = MANIFEST_PATH) -> Manifest:
         if source is not None and not source.exists():
             raise ManifestError(f"{name}: source {source} does not exist")
 
-        declared = body.get("profiles") or []
+        declared = [p for p in (body.get("profiles") or []) if p not in _REMOTE]
         for prof in declared:
             if prof not in profiles:
                 raise ManifestError(f"{name}: unknown profile {prof!r}")

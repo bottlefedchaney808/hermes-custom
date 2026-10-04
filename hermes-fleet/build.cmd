@@ -7,7 +7,7 @@ REM
 REM esbuild comes from the Hermes checkout, so there is nothing to npm install.
 REM Commit both artifacts: every host loads the built file, never the sources.
 setlocal
-set "ESB=C:\Users\bottl\.hermes\hermes-agent\node_modules\@esbuild\win32-x64\esbuild.exe"
+set "ESB=C:\Users\bottl\AppData\Local\hermes\tools\node-26.7.0-win32-x64\esbuild.exe"
 if not exist "%ESB%" (
   echo esbuild not found at %ESB%
   echo Re-point this file, or run: npm install
