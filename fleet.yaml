@@ -4,7 +4,7 @@
 # --------------------
 # Hermes resolves agent plugins, skills and skins from exactly one place:
 # `get_hermes_home()` (hermes_cli/plugins_discovery.py:158). There is no shared
-# path, no search list, no "install once for every profile". Profiles (default, jason, tiferet, gork)
+# path, no search list, no "install once for every profile". Profiles (default, coder, tiferet)
 # each get their own physical trees.
 #
 # Before this file, that was managed by hand, and it had already drifted:
@@ -56,7 +56,7 @@ profiles:
     managed: local
     role: >-
       Active coding profile on this box (HERMES_HOME). Gets the lab.
-  # tiferet + gork belong to the WORKER's own migration kit (zinko83@100.121.48.59).
+  # tiferet belongs to the WORKER's own migration kit (zinko83@100.121.48.59).
   # Marked managed-elsewhere so `fleet sync` never touches them from here.
   tiferet:
     home: ~/.hermes/profiles/tiferet
@@ -64,12 +64,6 @@ profiles:
     role: >-
       Construction only, and company-facing. Owned by the worker's migration kit —
       this plan does NOT deploy or configure it.
-  gork:
-    home: ~/.hermes/profiles/gork
-    managed: worker
-    role: >-
-      Grok-Powered Generalist. Owned by the worker's migration kit — this plan
-      does NOT deploy or configure it.
   # `jason` removed (2026-10-03): phantom — absent from every profile dir on this box.
 
 # ── defaults ────────────────────────────────────────────────────────────────
@@ -405,15 +399,14 @@ packages:
     summary: >-
       Agent Eyes agent plugin — eyes_open / eyes_close + stills hook. Desktop
       half is global via bot-kit-desktop.
-    profiles: [default, coder, gork]
+    profiles: [default, coder]
     surfaces:
       - kind: agent-plugin
         from: agent-eyes/agent-plugin/agent-eyes
         install_as: agent-eyes
         enable: true
     notes: >-
-      Not tiferet. Not texting-style. gork is included so this bot can show
-      pages; do not fold gork into bot-kit-agent (that would install texting-style).
+      Not tiferet. Not texting-style.
 
   # ── extra user plugins: default+jason even; never tiferet ───────────────
   # These live in ~/.hermes/plugins (git clones or local dirs), not this
@@ -480,7 +473,7 @@ packages:
       NousResearch reference plugins: two ctx.llm slash-command examples, a
       dashboard tab example and the strike-freedom-cockpit theme. Third-party
       clone (gitignored) -- the server needs its own clone at the same path.
-    profiles: [default, coder, tiferet, gork]
+    profiles: [default, coder, tiferet]
     surfaces:
       - kind: agent-plugin
         from: plugin-llm-example
@@ -504,7 +497,7 @@ packages:
     summary: >-
       Institutional-grade single-stock research skill v3.0.0 (unpacked from
       equity-research-skill-v3.0.0.zip).
-    profiles: [default, coder, tiferet, gork]
+    profiles: [default, coder, tiferet]
     surfaces:
       - kind: skill
         from: .
