@@ -1,0 +1,7 @@
+{
+  "hermes-fleet": {"default": true, "coder": true, "validate_exit": 0, "doctor_exit": 0, "errors": []},
+  "hermes-dynamic-workflows": {"default": true, "coder": true, "validate_exit": 1, "doctor_exit": 0, "errors": ["undeclared hooks registered (not in provides_hooks): pre_tool_call", "security scan caution: curl_pipe_python (test_child_agent.py:1054), format_filesystem (hooks.py:37)"]},
+  "delegate-task-advanced": {"default": true, "coder": true, "validate_exit": 1, "doctor_exit": 0, "errors": ["register() raised: subagent_lifecycle"]},
+  "hermes-hud": {"default": true, "coder": true, "validate_exit": 1, "doctor_exit": 1, "errors": ["no plugin.yaml (or portable plugin.json) in the plugin directory"]},
+  "hermes-hudui": {"default": true, "coder": true, "validate_exit": 1, "doctor_exit": 1, "errors": ["no plugin.yaml (or portable plugin.json) in the plugin directory"]}
+}

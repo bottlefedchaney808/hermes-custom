@@ -1,0 +1,56 @@
+{
+  "agent-eyes": {
+    "status": "ok",
+    "staged_both_homes": true,
+    "validate_exit": 0,
+    "doctor_exit": 0,
+    "errors": [],
+    "notes": "Copied hermes-bot-kit/agent-eyes/agent-plugin/agent-eyes into both homes. No pyproject.toml present (task note said there was one) so --install-deps installed nothing (detail: 'none declared'); validate all checks green; doctor 2 tools/1 hook."
+  },
+  "texting-style": {
+    "status": "ok",
+    "staged_both_homes": true,
+    "validate_exit": 0,
+    "doctor_exit": 0,
+    "errors": [],
+    "warnings": [
+      "security scan caution: curl_pipe_shell (README.md:19)"
+    ],
+    "notes": "Copied hermes-bot-kit/texting-style into both homes. No python deps declared. validate exit 0 with one non-blocking security-scan caution (curl_pipe_shell in README.md:19). doctor 0 tools/1 hook."
+  },
+  "token-optimizer": {
+    "status": "ok-with-validation-failure",
+    "staged_both_homes": true,
+    "validate_exit": 1,
+    "doctor_exit": 0,
+    "errors": [
+      "declared hooks: undeclared hooks registered (not in provides_hooks): on_session_end, on_session_finalize, post_api_request, pre_llm_call"
+    ],
+    "notes": "Installed via skills/token-optimizer/scripts/hermes_install.py (no --enable, so config.yaml NOT touched) into BOTH homes (9 files each). doctor passes (0 tools/4 hooks). validate exits 1 because plugin.yaml declares hooks under a 'hooks:' key but the validator expects 'provides_hooks:', so it flags the 4 hooks as undeclared. This is a plugin.yaml schema mismatch in the plugin, not an install or network problem. Staged copies are importable and register cleanly."
+  },
+  "example-plugins": {
+    "status": "partially-installed",
+    "staged_both_homes": true,
+    "validate_exit": null,
+    "doctor_exit": null,
+    "errors": [],
+    "notes": "example-plugins clone at hermes-custom/example-plugins contains only 4 reference plugins (example-dashboard, plugin-llm-example, plugin-llm-async-example, strike-freedom-cockpit). Neither 'skill-fuse' nor 'memory-wiki' is in that clone. memory-wiki was located as its own official repo NousResearch/hermes-memory-wiki (catalog entry hermes-memory-wiki.yaml), cloned to hermes-custom/memory-wiki and staged into BOTH homes. skill-fuse does not exist anywhere: not in the clone, not in the plugin catalog, no NousResearch/hermes-skill-fuse repo (404). memory-wiki validated + doctored separately (see 'memory-wiki'). No plugin from the example-plugins clone itself was installed.",
+    "skill_fuse": {
+      "status": "not-found",
+      "reason": "Not in example-plugins clone, not in plugin-catalog, no GitHub repo NousResearch/hermes-skill-fuse (404)."
+    },
+    "memory_wiki": {
+      "status": "installed-from-own-repo",
+      "source": "https://github.com/NousResearch/hermes-memory-wiki",
+      "note": "Not in the example-plugins clone; installed from its own official repo."
+    }
+  },
+  "memory-wiki": {
+    "status": "ok",
+    "staged_both_homes": true,
+    "validate_exit": 0,
+    "doctor_exit": 0,
+    "errors": [],
+    "notes": "Cloned from https://github.com/NousResearch/hermes-memory-wiki (official repo per catalog), staged into BOTH homes as 'memory-wiki'. Dashboard-only plugin (0 tools/0 hooks); dashboard/dist/index.js is bundled in the repo so no node build step was required. --install-deps installed nothing (no python deps declared). validate all green; doctor green."
+  }
+}

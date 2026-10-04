@@ -1,0 +1,14 @@
+{
+  "superpowers": {
+    "copied": 17,
+    "present": 0,
+    "missing_from_default": [],
+    "missing_from_coder": [],
+    "frontmatter_failures": []
+  },
+  "hermes-claude-code": {
+    "validate_exit": 0,
+    "doctor_exit": 0,
+    "errors": []
+  }
+}

@@ -1,0 +1,62 @@
+Task 0 preflight — canonical facts (2026-10-03, executed on this box)
+====================================================================
+Scope: LOCAL BOX ONLY — profiles default + coder. Worker (zinko83@100.121.48.59,
+profiles tiferet + gork) is OUT OF SCOPE, owned by its own migration kit.
+
+U1  CANONICAL ROOT = C:\Users\bottl\AppData\Local\hermes
+    - default profile home = the root itself (plugins at ...\plugins, skills at ...\skills)
+    - coder profile home   = ...\profiles\coder (plugins + skills there)
+    - Legacy root C:\Users\bottl\.hermes holds ONLY profiles/tiferet (empty residue).
+      QUARANTINED — do not sync into it, do not delete it.
+    - HERMES_HOME env = ...\profiles\coder. get_default_hermes_root -> AppData\Local\hermes.
+
+U2  RUNTIME PYTHON (for fleet + pytest): C:\Users\bottl\AppData\Local\hermes\hermes-custom-venv\Scripts\python.exe
+    (pyyaml 6.0.3, ruamel OK, pytest 9.1.1). Real base python:
+    C:/Users/bottl/AppData/Local/Programs/Python/Python314/python.exe (3.14.6).
+    NOTE: no python on PATH had pyyaml/ruamel; the WindowsApps python3 is a stub.
+
+U3  node v26.7.0 present (hermes\tools\node-26.7.0-win32-x64\node). esbuild MISSING ->
+    Phase 3 correction task: install esbuild, then hermes-fleet build.cmd.
+
+U4  token-optimizer installer ACTUAL path:
+    token-optimizer/skills/token-optimizer/scripts/hermes_install.py
+    (fleet.yaml claims skills/token-optimizer/scripts/ — WRONG; the plan's own v2
+    correction token-optimizer/hermes/scripts/ was also WRONG).
+
+U5  RESOLVED. Local: default, coder (both running). Worker: tiferet, gork. jason = phantom.
+
+U6  junction visibility — resolved in Phase 5 by the L1 lane (not a pre-mutation gate).
+
+U7  RAG GRAPH_PATH target C:/Users/bottl/hermes-artifacts/artifacts/vault-graph/index.html
+    EXISTS locally — desktop pane can work from this box.
+
+U8  RESOLVED. Worker = zinko83@100.121.48.59 (Linux/Ubuntu, Tailscale peer zinkoserver).
+    Out of scope. brain-rag runs on the worker's tiferet profile. Local box consumes RAG
+    via MCP-over-SSH. <remote-python> path UNRESOLVED (worker system python3 lacks
+    sqlite_vec) — needs the worker kit. MCP integration also needs operator approval.
+
+BASELINES
+- pytest tests/ = 47 passed, 1 skipped, 1 FAILED (test_the_real_manifest_loads).
+  PRE-EXISTING failure: manifest profiles {default,jason,tiferet,gork} != test's expected
+  {default,local,tiferet}. fleet.yaml describes a DIFFERENT machine topology than this
+  box (default+coder). Therefore fleet sync --apply must NOT be run here.
+- claude CLI present (2.1.287) -> hermes-claude-code plugin NOT blocked.
+
+SYNC GUARD (plan requirement before any --apply):
+  fleet sync dry-run shows every planned write targets C:\Users\bottl\.hermes\ (legacy root)
+  for profiles default/jason/tiferet/gork. ZERO live profiles targeted correctly.
+  CONCLUSION: do NOT run fleet sync --apply. Install via hermes CLI directly.
+
+BACKUPS (private, outside repo) C:\Users\bottl\AppData\Local\Temp\hermes-install-backup-2026-10-03\
+  default__root/config.yaml size=130293 sha256=052f9a45a37fa1
+  default__root/.env        size=27112   sha256=166a8b32ce0125c
+  coder__root/config.yaml   size=127315  sha256=5f7b3df90eba268
+  coder__root/.env          size=27112   sha256=166a8b32ce0125c
+  (values never printed; redacted as [REDACTED])
+
+INSTALL MECHANISM (validated surfaces):
+  hermes plugins validate <path> --json [--install-deps]   (read-only)
+  hermes plugins enable <name>                              (writes config.yaml — L0 only)
+  hermes plugins doctor --ci <path>                         (read-only)
+  hermes skills list / hermes -p <profile> skills list
+  hermes mcp add <name> --command ... --args ... --env K=V  (L0 only)

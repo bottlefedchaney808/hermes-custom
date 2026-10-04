@@ -1,0 +1,29 @@
+{
+  "token_optimizer_skills": {
+    "adapted": [
+      "fleet-auditor",
+      "resume-checkpoint",
+      "token-coach",
+      "token-dashboard",
+      "token-optimizer"
+    ],
+    "grep_gate_pass": true
+  },
+  "gepa": {
+    "status": "installed",
+    "frontmatter_ok": true,
+    "missing_dependencies": [
+      "evolution package (Self-Evolution/hermes-agent-self-evolution not pip-installed)",
+      "dspy",
+      "litellm",
+      "HERMES_AGENT_REPO env var / hermes-agent checkout",
+      "NOUS_API_KEY"
+    ]
+  },
+  "count_engineering": {
+    "status": "installed",
+    "frontmatter_ok": true,
+    "depends_on_mcp": true,
+    "mcp_dependency": "takeoff-lens (Phase 4, not yet installed)"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "lane": "lane-superpowers-adapted",
+  "source": "C:/Users/bottl/hermes-custom/skills/Superpowers/",
+  "adapted": [
+    "brainstorming",
+    "carl",
+    "dispatching-parallel-agents",
+    "executing-plans",
+    "finishing-a-development-branch",
+    "multimodel-review",
+    "receiving-code-review",
+    "requesting-code-review",
+    "subagent-driven-development",
+    "systematic-debugging",
+    "test-driven-development",
+    "using-git-worktrees",
+    "using-superpowers",
+    "verification-before-completion",
+    "writing-plans",
+    "writing-skills"
+  ],
+  "blocked": [
+    {
+      "name": "hygiene-audit",
+      "reason": "Entire purpose depends on infrastructure with no Hermes equivalent: /pickup, keel, the worklog (pa.workstreams / knowledge.handoffs / pa.review_loops), mcp__pa-bridge, mcp__knowledge-base, and the claude-config PostgreSQL worklog. Its model: inherit frontmatter and the Agent/sonnet distiller fan-out are Claude-Code-only. Marked BLOCKED at the top of SKILL.md rather than faked."
+    }
+  ],
+  "grep_gate_pass": true,
+  "grep_patterns_checked": [
+    "Agent(",
+    "TodoWrite",
+    "Bash(",
+    "Read(",
+    "model: sonnet",
+    "model: inherit",
+    "subagent_type",
+    "WebFetch",
+    "Glob",
+    "MultiEdit"
+  ],
+  "remaining_unmapped": [
+    "hygiene-audit/SKILL.md: model: inherit (line 8, frontmatter) — expected, skill is BLOCKED"
+  ],
+  "notes": [
+    "All 17 SKILL.md bodies were already runtime-agnostic (they describe actions, not literal tool calls); adaptation consisted of (a) writing a central Hermes mapping at using-superpowers/references/hermes-tools.md, (b) updating using-superpowers/SKILL.md to state that Hermes loads skills natively via skill_view()/skills_list() with no Skill tool, and (c) writing a per-skill references/hermes-tools.md in each of the 16 adapted skills listing the action->tool mapping applied, for auditability.",
+    "Grep gate across all SKILL.md files: Agent(=0, TodoWrite=0, Bash(=0, Read(=0, model: sonnet=0, subagent_type=0, WebFetch=0, MultiEdit=0, whole-word Glob=0. The substring 'Glob' only appears inside the phrase 'Global Constraints' (subagent-driven-development, writing-plans) — not a tool reference.",
+    "references/*-tools.md files (claude-code/grok/codex/hermes/...) legitimately retain the old tool names because they ARE the per-runtime mapping documents; they are not unmapped usages."
+  ]
+}
