@@ -473,6 +473,43 @@ packages:
         managed: upstream
         enable: true
 
+  - name: example-plugins
+    source: example-plugins
+    upstream: https://github.com/NousResearch/hermes-example-plugins
+    summary: >-
+      NousResearch reference plugins: two ctx.llm slash-command examples, a
+      dashboard tab example and the strike-freedom-cockpit theme. Third-party
+      clone (gitignored) -- the server needs its own clone at the same path.
+    profiles: [default, coder, tiferet, gork]
+    surfaces:
+      - kind: agent-plugin
+        from: plugin-llm-example
+        install_as: plugin-llm-example
+        enable: true
+      - kind: agent-plugin
+        from: plugin-llm-async-example
+        install_as: plugin-llm-async-example
+        enable: true
+      - kind: agent-plugin
+        from: example-dashboard
+        install_as: example-dashboard
+        enable: true
+      - kind: agent-plugin
+        from: strike-freedom-cockpit
+        install_as: strike-freedom-cockpit
+        enable: true
+
+  - name: equity-research
+    source: skills/equity-research
+    summary: >-
+      Institutional-grade single-stock research skill v3.0.0 (unpacked from
+      equity-research-skill-v3.0.0.zip).
+    profiles: [default, coder, tiferet, gork]
+    surfaces:
+      - kind: skill
+        from: .
+        mode: copy   # skills are ALWAYS copies -- see defaults note
+
   # ── desktop: GLOBAL. `profiles:` is intentionally absent. ────────────────
 
   - name: bot-kit-desktop
