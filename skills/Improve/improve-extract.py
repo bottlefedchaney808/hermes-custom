@@ -1194,16 +1194,43 @@ REVERT_SHAPED_RE = re.compile(
 )
 
 
+# Candidate roots for git repos when ~/git is absent (e.g. post-migration Linux box where real repos
+# live under ~/hermes-custom, ~/llama.cpp, etc.).
+GIT_REPO_CANDIDATES = [GIT_DIR, Path.home() / "hermes-custom", Path.home() / "llama.cpp"]
+
+
+def _iter_repo_roots():
+    """Return repo roots from GIT_REPO_CANDIDATES, skipping heavy/virtual dirs."""
+    roots = []
+    seen = set()
+    for base in GIT_REPO_CANDIDATES:
+        if not base.is_dir():
+            continue
+        if (base / ".git").exists():
+            roots.append(base)
+            seen.add(str(base))
+            continue
+        skip = {"node_modules", ".venv", "venv", "dist", "build", ".git", "target"}
+        for p in sorted(base.iterdir()):
+            if p.is_dir() and p.name not in skip and (p / ".git").exists():
+                key = str(p)
+                if key not in seen:
+                    roots.append(p)
+                    seen.add(key)
+    return roots
+
+
 def extract_git(cutoff_date, days=30):
     """Extract git logs from all repos, categorized by type."""
-    if not GIT_DIR.exists():
-        return {"error": "git dir not found"}
+    repos = _iter_repo_roots()
+    if not repos:
+        return {"error": "no git repos found in candidate roots"}
 
     repo_activity = {}
     fix_hotspots: dict[str, dict] = {}
     revert_patterns = []
 
-    for repo_dir in sorted(GIT_DIR.iterdir()):
+    for repo_dir in _iter_repo_roots():
         git_dir = repo_dir / ".git"
         if not git_dir.exists():
             continue
@@ -1365,10 +1392,12 @@ def extract_artifacts():
         for cmd in sorted(COMMANDS_DIR.iterdir()):
             if cmd.suffix == ".md":
                 try:
-                    lines = cmd.read_text().split("\n")
+                    text = cmd.read_text()
+                    cap = 4000
                     commands[cmd.name] = {
                         "size": cmd.stat().st_size,
-                        "preview": "\n".join(lines[:20]),
+                        "content": text[:cap],
+                        "content_truncated": len(text) > cap,
                     }
                 except (OSError, PermissionError):
                     continue
