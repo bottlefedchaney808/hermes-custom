@@ -58,3 +58,40 @@ def test_ignores_profiles_without_a_database_and_stray_files(monkeypatch, tmp_pa
 
 def test_missing_default_database_and_profiles_dir_is_not_an_error(monkeypatch, tmp_path):
     assert _load(monkeypatch, tmp_path).sweep_state_dbs() == []
+
+
+def _brain(home: Path, name: str) -> Path:
+    return _touch(home / "profiles" / name / "rag" / "brain.sqlite")
+
+
+def test_brains_include_shared_and_every_profile_that_has_one(monkeypatch, tmp_path):
+    for name in ("tiferet", "it", "clauud"):
+        _brain(tmp_path, name)
+
+    found = _load(monkeypatch, tmp_path).brains()
+
+    assert list(found) == ["shared", "clauud", "it", "tiferet"]  # shared first, then by name
+    assert found["shared"] == tmp_path / "rag"
+    assert found["it"] == tmp_path / "profiles" / "it" / "rag"
+
+
+def test_a_profile_without_a_brain_is_never_given_one(monkeypatch, tmp_path):
+    _brain(tmp_path, "tiferet")
+    (tmp_path / "profiles" / "blackhole").mkdir(parents=True)  # no rag/
+    _touch(tmp_path / "profiles" / "ninja" / "state.db")  # has sessions, not a brain
+    (tmp_path / "profiles" / "norag" / "rag").mkdir(parents=True)  # rag dir but no brain.sqlite
+
+    assert list(_load(monkeypatch, tmp_path).brains()) == ["shared", "tiferet"]
+
+
+def test_a_brain_added_after_import_is_picked_up(monkeypatch, tmp_path):
+    mod = _load(monkeypatch, tmp_path)
+    assert list(mod.brains()) == ["shared"]
+
+    _brain(tmp_path, "newcomer")
+
+    assert list(mod.brains()) == ["shared", "newcomer"]
+
+
+def test_no_profiles_directory_is_not_an_error(monkeypatch, tmp_path):
+    assert list(_load(monkeypatch, tmp_path).brains()) == ["shared"]

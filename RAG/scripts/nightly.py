@@ -35,10 +35,21 @@ from brain_rag.store import Store  # noqa: E402
 
 HOME = Path(os.environ.get("HERMES_ROOT") or Path.home() / ".hermes")
 VAULT = Path(os.environ.get("OBSIDIAN_VAULT_PATH") or Path.home() / "obsidian-vault")
-BRAINS = {
-    "shared": HOME / "rag",
-    "tiferet": HOME / "profiles" / "tiferet" / "rag",
-}
+
+
+def brains() -> dict[str, Path]:
+    """Every brain to keep fresh: the shared one, plus each profile that already has
+    its own ``profiles/<name>/rag/brain.sqlite``. Evaluated per run, so a profile given
+    a brain later is indexed without editing this file. A profile with no brain is never
+    given one here (blackhole and ninja have none)."""
+    found = {"shared": HOME / "rag"}
+    profiles = HOME / "profiles"
+    if profiles.is_dir():
+        for db in sorted(profiles.glob("*/rag/brain.sqlite")):
+            found[db.parent.parent.name] = db.parent
+    return found
+
+
 LOG = HOME / "rag" / "nightly.log"
 LOG_KEEP_LINES = 400
 
@@ -89,7 +100,7 @@ def main() -> int:
 
     report["index"] = {}
     if not args.dry_run:
-        for name, rag_dir in BRAINS.items():
+        for name, rag_dir in brains().items():
             try:
                 store = Store.open(rag_dir / "brain.sqlite")
                 try:
