@@ -39,9 +39,19 @@ BRAINS = {
     "shared": HOME / "rag",
     "tiferet": HOME / "profiles" / "tiferet" / "rag",
 }
-SWEEP_STATE_DBS = [HOME / "state.db", HOME / "profiles" / "jason" / "state.db"]
 LOG = HOME / "rag" / "nightly.log"
 LOG_KEEP_LINES = 400
+
+
+def sweep_state_dbs() -> list[Path]:
+    """Every profile's session database that exists: default first, then each
+    ``profiles/<name>/state.db`` in name order. Evaluated per run, so a profile
+    added later is swept without editing this file."""
+    found = [HOME / "state.db"]
+    profiles = HOME / "profiles"
+    if profiles.is_dir():
+        found += sorted(profiles.glob("*/state.db"))
+    return [db for db in found if db.is_file()]
 
 
 def _legs(rag_dir: Path) -> tuple[str, ...] | None:
@@ -74,7 +84,7 @@ def main() -> int:
 
     if not args.no_sweep and not args.dry_run:
         from brain_rag.sweep import sweep_sessions
-        report["sweep"] = [sweep_sessions(db, VAULT, push=True) for db in SWEEP_STATE_DBS if db.exists()]
+        report["sweep"] = [sweep_sessions(db, VAULT, push=True) for db in sweep_state_dbs()]
         failed |= any(r.get("error") for r in report["sweep"])
 
     report["index"] = {}

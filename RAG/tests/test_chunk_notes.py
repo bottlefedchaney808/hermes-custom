@@ -80,3 +80,35 @@ def test_skips_non_indexable_paths(rel):
 
 def test_does_not_skip_real_notes():
     assert should_skip("Trading/Positions.md") is False
+
+
+def _declared(leg_line: str) -> str:
+    return f"---\ndate: 2026-10-13\n{leg_line}\n---\n# Note\n\nA fact.\n"
+
+
+@pytest.mark.parametrize(
+    "leg_line, expected",
+    [
+        ("leg: Construction", "Construction"),
+        ("leg: Trading", "Trading"),
+        ("leg: construction", "Construction"),  # case-insensitive
+        ("leg: Construction\r", "Construction"),  # CRLF note
+        ('leg: "Trading"', "Trading"),  # quoted
+        ("leg: Gardening", "Development"),  # unknown is never a fourth bucket
+        ("leg:", "Development"),  # empty
+    ],
+)
+def test_declared_leg_decides_for_notes_outside_a_leg_directory(leg_line, expected):
+    chunks = chunk_note("Inbox/2026-10-13-example.md", _declared(leg_line), mtime=1_756_000_000.0)
+    assert {c.leg for c in chunks} == {expected}
+
+
+def test_note_without_declared_leg_outside_a_leg_directory_is_development():
+    chunks = chunk_note("Inbox/plain.md", "# Plain\n\nNo frontmatter.\n", mtime=1_756_000_000.0)
+    assert {c.leg for c in chunks} == {"Development"}
+
+
+def test_path_leg_beats_a_conflicting_declared_leg():
+    # A note filed under Construction/ stays Construction: path is structural.
+    chunks = chunk_note("Construction/Jobs/x.md", _declared("leg: Trading"), mtime=1_756_000_000.0)
+    assert {c.leg for c in chunks} == {"Construction"}

@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from brain_rag.leg import DEFAULT_LEG, leg_for_vault_path
+from brain_rag.leg import DEFAULT_LEG, LEGS, leg_for_vault_path
 
 # ~1500 tokens at the conventional 4-chars-per-token estimate.
 MAX_CHUNK_CHARS = 6000
@@ -152,9 +152,27 @@ def chunk_session_note(rel_path: str, text: str, mtime: float) -> list[Chunk]:
     )
 
 
+def _declared_leg(text: str) -> str | None:
+    """The frontmatter ``leg:`` when it names a real leg, else None.
+
+    Normalises case and stray whitespace/CR (CRLF notes carry a trailing
+    ``\r``). An unknown value is ignored, never a fourth bucket.
+    """
+    raw = _frontmatter(text).get("leg", "").strip().strip("\"'").strip()
+    for leg in LEGS:
+        if raw.lower() == leg.lower():
+            return leg
+    return None
+
+
 def chunk_note(rel_path: str, text: str, mtime: float) -> list[Chunk]:
-    """Split one note into chunks. Frontmatter rides with the first chunk."""
-    leg = leg_for_vault_path(rel_path) or DEFAULT_LEG
+    """Split one note into chunks. Frontmatter is stripped and not indexed.
+
+    Leg: the path's first segment wins (structural, one note one leg). A note
+    outside any leg directory (``Inbox/``, vault root) uses its declared
+    frontmatter ``leg:`` when valid, then falls back to the default leg.
+    """
+    leg = leg_for_vault_path(rel_path) or _declared_leg(text) or DEFAULT_LEG
     date = _iso_date(mtime)
     body = _FRONTMATTER_RE.sub("", text)
 
