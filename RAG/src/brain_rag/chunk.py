@@ -71,13 +71,46 @@ def _wikilinks(text: str) -> tuple[str, ...]:
     return tuple(seen)
 
 
+def _hard_split(text: str) -> list[str]:
+    """Cut a block with no blank lines into pieces of at most MAX_CHUNK_CHARS.
+
+    Prefers the last newline, then the last space, in the back half of the
+    window; cuts mid-token only when neither exists (a minified blob). Never
+    drops or repeats a character.
+    """
+    pieces: list[str] = []
+    rest = text
+    while len(rest) > MAX_CHUNK_CHARS:
+        window = rest[:MAX_CHUNK_CHARS]
+        floor = MAX_CHUNK_CHARS // 2
+        cut = window.rfind("\n", floor)
+        if cut == -1:
+            cut = window.rfind(" ", floor)
+        cut = cut + 1 if cut != -1 else MAX_CHUNK_CHARS
+        pieces.append(rest[:cut])
+        rest = rest[cut:]
+    if rest:
+        pieces.append(rest)
+    return pieces
+
+
 def _split_oversized(text: str) -> list[str]:
-    """Split on blank lines, packing paragraphs up to the cap."""
+    """Pack blank-line paragraphs up to the cap; hard-split any one paragraph over it.
+
+    Every returned piece is at most MAX_CHUNK_CHARS: the embedder rejects a
+    request containing a chunk over its context limit, which blocks the index.
+    """
     if len(text) <= MAX_CHUNK_CHARS:
         return [text]
     out: list[str] = []
     buf = ""
     for para in text.split("\n\n"):
+        if len(para) > MAX_CHUNK_CHARS:
+            if buf:
+                out.append(buf)
+                buf = ""
+            out.extend(_hard_split(para))
+            continue
         candidate = f"{buf}\n\n{para}" if buf else para
         if len(candidate) > MAX_CHUNK_CHARS and buf:
             out.append(buf)
@@ -237,20 +270,24 @@ def chunk_session(
         parts = [f"**User:** {user_text}"]
         if assistant_text:
             parts.append(f"**Assistant:** {assistant_text}")
-        piece = "\n\n".join(parts)
-        chunks.append(
-            Chunk(
-                text=piece,
-                path=rel_path.replace("\\", "/"),
-                heading=None,
-                leg=leg,
-                source="session",
-                date=started,
-                session_id=session_id,
-                wikilinks=_wikilinks(piece),
-                content_hash=_hash(session_id, str(len(chunks)), piece),
+        # One pair is one chunk unless it exceeds the cap; then it is split so the
+        # embedder (40,960-token limit) never sees an oversized request. The
+        # running chunk count keeps every piece's hash distinct and stable, and
+        # a normal single-piece pair hashes exactly as before.
+        for piece in _split_oversized("\n\n".join(parts)):
+            chunks.append(
+                Chunk(
+                    text=piece,
+                    path=rel_path.replace("\\", "/"),
+                    heading=None,
+                    leg=leg,
+                    source="session",
+                    date=started,
+                    session_id=session_id,
+                    wikilinks=_wikilinks(piece),
+                    content_hash=_hash(session_id, str(len(chunks)), piece),
+                )
             )
-        )
 
     for turn in turns:
         role = turn.get("role")
