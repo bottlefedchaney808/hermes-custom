@@ -1,9 +1,14 @@
-"""Scrub secrets out of session text before it becomes a vault note.
+"""Scrub secrets and contact details out of session text before it becomes a vault note.
 
 Transcripts carry whatever was pasted into a chat. Once swept they are
 committed, pushed and indexed, so redaction happens at write time — the one
 place that is too late to skip. Deliberately conservative: a card number must
 pass Luhn, so order numbers and SF totals survive.
+
+Contact details are masked too: email addresses and North American phone
+numbers (vendor, GC and client contacts). Technical addresses are kept because
+notes need them: ``user@<ip>`` ssh targets, ``api.*`` / ``*-api.*`` hosts and
+``*.gserviceaccount.com`` service accounts.
 """
 from __future__ import annotations
 
@@ -22,6 +27,26 @@ _PATTERNS = [
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----"),
     re.compile(r"\b[A-Fa-f0-9]{40,}\b"),                                # long hex secrets
 ]
+
+_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+)")
+_IPV4 = re.compile(r"\d{1,3}(?:\.\d{1,3}){3}")
+_PHONE = re.compile(r"(?<![\w.])(?:\+?1[-. ]?)?\(?\b\d{3}\)?[-. ]\d{3}[-. ]\d{4}\b")
+
+
+def _is_technical_host(host: str) -> bool:
+    host = host.lower()
+    return bool(
+        _IPV4.fullmatch(host)
+        or host.endswith("gserviceaccount.com")
+        or host.startswith("api.")
+        or "-api." in host
+    )
+
+
+def _email(match: re.Match) -> str:
+    return match.group(0) if _is_technical_host(match.group(1)) else MASK
+
+
 _ASSIGN = re.compile(
     r"(?i)\b((?:api[_-]?key|secret|token|password|passwd|pwd|client[_-]?secret|cvv|cvc)"
     r"\s*[:=]\s*)(\"[^\"]+\"|'[^']+'|\S+)"
@@ -65,4 +90,6 @@ def redact(text: str) -> str:
     for pattern in _PATTERNS:
         out = pattern.sub(MASK, out)
     out = _ASSIGN.sub(lambda m: m.group(1) + MASK, out)
+    out = _EMAIL.sub(_email, out)
+    out = _PHONE.sub(MASK, out)
     return "\n".join(_context_line(line) for line in out.split("\n"))
